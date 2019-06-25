@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="vsc-workflows",
+    name="vscworkflows",
     version="Planning",
     author="Marnik Bercx",
     packages=find_packages(where=".", exclude="docs"),
