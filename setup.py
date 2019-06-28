@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "pymatgen",
         "fireworks",
+        "custodian",
         "dnspython",
         "click"
     ],

@@ -60,7 +60,7 @@ class SlabRelaxSet(DictSet):
         # Defaults for a slab optimization
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
-        self.structure = QSlab.from_slab(self.structure)
+        self.structure = QSlab.from_slab(self.structure.copy())
         # This step is unfortunately necessary because the `get_sorted_structure()`
         # method of `pymatgen.core.surface.Slab` returns a Slab object. It would be
         # better if this method used self.__class__() instead of using Slab() to
