@@ -8,6 +8,11 @@ setup(
     install_requires=[
         "pymatgen",
         "fireworks",
+        "dnspython",
         "click"
-    ]
+    ],
+    entry_points='''
+        [console_scripts]
+        vsc=vscworkflows.cli:main
+    '''
 )
