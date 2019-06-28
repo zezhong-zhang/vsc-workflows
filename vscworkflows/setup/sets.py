@@ -55,17 +55,11 @@ class SlabRelaxSet(DictSet):
     def __init__(self, structure, k_product=50, **kwargs):
         super(SlabRelaxSet, self).__init__(structure=structure,
                                            config_dict=SlabRelaxSet.CONFIG,
-                                           sort_structure=False,
                                            **kwargs)
 
         # Defaults for a slab optimization
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
-        # self.structure = QSlab.from_slab(self.structure)
-        # This step is unfortunately necessary because the `get_sorted_structure()`
-        # method of `pymatgen.core.surface.Slab` returns a Slab object. It would be
-        # better if this method used self.__class__() instead of using Slab() to
-        # initialize the returned structure.
         self._config_dict["INCAR"].update(defaults)
         self.k_product = k_product
         self.selective_dynamics = None
