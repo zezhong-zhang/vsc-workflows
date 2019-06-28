@@ -8,7 +8,7 @@ import click
 from vscworkflows.config import load_config
 
 """
-Command line interface for the vscworfklows package.
+Command line interface for the vscworkflows package.
 
 """
 
@@ -39,7 +39,7 @@ def _load_launchpad(name="base"):
             return load_config("launchpad", name)
         except FileNotFoundError:
             raise FileNotFoundError(
-                "Could not find requested launchpad in $HOME/.worfklow_config/launchpad. "
+                "Could not find requested launchpad in $HOME/.workflow_config/launchpad. "
                 "Use 'vsc config launchpad' to set up new launchpads.")
     else:
         # Try loading the base launchpad
@@ -85,7 +85,7 @@ def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs):
     except FileNotFoundError:
         raise FileNotFoundError(
             "Could not find the qadapter of the fireworker in "
-            "$HOME/.worfklow_config/fworker. Use 'vsc config fworker' to set up new "
+            "$HOME/.workflow_config/fworker. Use 'vsc config fworker' to set up new "
             "fireworkers."
         )
     queue_adapter["nnodes"] = number_nodes
@@ -95,7 +95,7 @@ def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs):
         lpad_name + "_launchpad.yaml"
     )
     queue_adapter["fireworker_file"] = os.path.join(
-        os.path.expanduser("~"), ".worfklow_config", "fworker",
+        os.path.expanduser("~"), ".workflow_config", "fworker",
         fworker_name + "_fworker.yaml"
     )
     # This line adds the timeout option to the

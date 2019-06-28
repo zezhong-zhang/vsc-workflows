@@ -92,7 +92,7 @@ def fworker(fireworker_file=None, fworker_name="base"):
 
     # Make sure the fireworker has the required node categories.
     if fireworker.category:
-        print("\nNote: Pybat will overwrite the category in the fireworker file to make "
+        print("\nNote: The category in the fireworker file has been adjuster to make "
               "sure that the jobs submitted on this fireworker only pick up the "
               "Fireworks with the correct category setting, i.e. corresponding to a "
               "number of nodes.\n")
