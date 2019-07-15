@@ -78,7 +78,10 @@ def main():
               help="Walltime of the job, expressed in hours. Defaults to 72.")
 @click.option("-j", "--number_jobs", default=1,
               help="The number of jobs to submit to the queue.")
-def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs):
+@click.option("--hog", is_flag=True,
+              help="Hog the nodes for the whole walltime, i.e. do not stop the job in "
+                   "case there are no more Fireworks to be launched.")
+def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs, hog):
     """
     Launch jobs to the queue that will accept Fireworks.
 
@@ -104,8 +107,11 @@ def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs):
         os.path.expanduser("~"), ".workflow_config", "fworker",
         fworker_name + "_fworker.yaml"
     )
-    # This line adds the timeout option to the
-    queue_adapter["rocket_launch"] += " --timeout " + str(walltime * 3000)
+    if hog:
+        queue_adapter["rocket_launch"] = "rapidfire --nlaunches infinite"
+    else:
+        # This line adds the timeout option to the
+        queue_adapter["rocket_launch"] += " --timeout " + str(walltime * 3000)
 
     rapidfire(launchpad=load_config("launchpad", lpad_name),
               fworker=load_config("fworker", fworker_name), qadapter=queue_adapter,
