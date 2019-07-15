@@ -40,7 +40,7 @@ class BulkStaticSet(DictSet):
 
     def __init__(self, structure, k_resolution=None, **kwargs):
         super(BulkStaticSet, self).__init__(
-            structure, BulkRelaxSet.CONFIG, **kwargs)
+            structure, BulkStaticSet.CONFIG, **kwargs)
         self.k_resolution = k_resolution
         self.kwargs = kwargs
 
@@ -83,10 +83,9 @@ class SlabStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, k_product=50, **kwargs):
-        super(SlabStaticSet,
-              self).__init__(structure=structure,
-                             config_dict=SlabStaticSet.CONFIG,
-                             **kwargs)
+        super(SlabStaticSet, self).__init__(structure=structure,
+                                            config_dict=SlabStaticSet.CONFIG,
+                                            **kwargs)
         # Default mixing for a slab optimization
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
