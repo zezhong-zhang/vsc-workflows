@@ -108,7 +108,7 @@ def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs, hog):
         fworker_name + "_fworker.yaml"
     )
     if hog:
-        queue_adapter["rocket_launch"] = "rapidfire --nlaunches infinite"
+        queue_adapter["rocket_launch"] = "rapidfire --nlaunches infinite --sleep 10"
     else:
         # This line adds the timeout option to the
         queue_adapter["rocket_launch"] += " --timeout " + str(walltime * 3000)
