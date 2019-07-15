@@ -81,7 +81,7 @@ class BulkRelaxSet(DictSet):
 class SlabStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
-    def __init__(self, structure, k_product=50, **kwargs):
+    def __init__(self, structure, k_resolution=None, **kwargs):
         super(SlabStaticSet, self).__init__(structure=structure,
                                             config_dict=SlabStaticSet.CONFIG,
                                             **kwargs)
@@ -89,36 +89,30 @@ class SlabStaticSet(DictSet):
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
         self._config_dict["INCAR"].update(defaults)
-        self.k_product = k_product
+        self.k_resolution = k_resolution
         self.kwargs = kwargs
 
     @property
     def kpoints(self):
         """
-        Sets up the k-points for the slab relaxation.
-
-        For slabs, the number of
-        k-points corresponding to the third reciprocal lattice vector is set
-        to 1. The number of k-point divisions in the other two directions is
-        determined by the length of the corresponding lattice vector, by making
-        sure the product of the number of k-points and the length of the
-        corresponding lattice vector is equal to k_product, defined in the
-        initialization of the slab calculation.
+        Sets up the k-points for the static calculation.
 
         Returns:
             :class: pymatgen.io.vasp.inputs.Kpoints
 
         """
-        # TODO What about user_kpoint_settings?
+        if self.k_resolution is not None:
+            # Use k_resolution to calculate kpoints
+            kpt_divisions = [int(l / self.k_resolution + 0.5) for l in
+                             self.structure.lattice.reciprocal_lattice.lengths]
+            kpt_divisions[2] = 1  # Only one k-point in c-direction for slab
 
-        # Use k_product to calculate kpoints
-        abc = self.structure.lattice.abc
-        kpt_calc = [int(self.k_product / abc[0] + 0.5),
-                    int(self.k_product / abc[1] + 0.5), 1]
+            kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
 
-        kpoints = Kpoints.gamma_automatic(kpts=kpt_calc)
+            return kpoints
 
-        return kpoints
+        else:
+            return super().kpoints
 
     # TODO: This method might still be useful; Check later
     # @staticmethod
@@ -158,7 +152,7 @@ class SlabRelaxSet(DictSet):
 
     CONFIG = _load_yaml_config("relaxSet")
 
-    def __init__(self, structure, k_product=50, **kwargs):
+    def __init__(self, structure, k_resolution=0.2, **kwargs):
         super(SlabRelaxSet, self).__init__(structure=structure,
                                            config_dict=SlabRelaxSet.CONFIG,
                                            **kwargs)
@@ -167,7 +161,7 @@ class SlabRelaxSet(DictSet):
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
         self._config_dict["INCAR"].update(defaults)
-        self.k_product = k_product
+        self.k_resolution = k_resolution
         self.selective_dynamics = None
         self.kwargs = kwargs
 
@@ -271,30 +265,21 @@ class SlabRelaxSet(DictSet):
     @property
     def kpoints(self):
         """
-        Sets up the k-points for the slab relaxation.
-
-        For slabs, the number of
-        k-points corresponding to the third reciprocal lattice vector is set
-        to 1. The number of k-point divisions in the other two directions is
-        determined by the length of the corresponding lattice vector, by making
-        sure the product of the number of k-points and the length of the
-        corresponding lattice vector is equal to k_product, defined in the
-        initialization of the slab calculation.
+        Sets up the k-points for the calculation.
 
         Returns:
             :class: pymatgen.io.vasp.inputs.Kpoints
 
         """
-        # If the user requested a specific kpoint setting
-        if self.user_kpoints_settings is not None:
-            # Use the setting requested
-            return super(SlabRelaxSet, self).kpoints()
-        else:
-            # Use k_product to calculate kpoints
-            abc = self.structure.lattice.abc
-            kpt_calc = [int(self.k_product / abc[0] + 0.5),
-                        int(self.k_product / abc[1] + 0.5), 1]
+        if self.k_resolution is not None:
+            # Use k_resolution to calculate kpoints
+            kpt_divisions = [int(l / self.k_resolution + 0.5) for l in
+                             self.structure.lattice.reciprocal_lattice.lengths]
+            kpt_divisions[2] = 1  # Only one k-point in c-direction for slab
 
-            kpoints = Kpoints.gamma_automatic(kpts=kpt_calc)
+            kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
 
             return kpoints
+
+        else:
+            return super().kpoints

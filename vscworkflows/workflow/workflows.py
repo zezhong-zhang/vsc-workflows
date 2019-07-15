@@ -24,20 +24,19 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
                     is_metal=False, in_custodian=False, number_nodes=None,
                     fw_action=None):
     """
-    Set up a geometry optimization workflow.
+    Set up a geometry optimization workflow for a bulk structure.
 
     Args:
-        structure (pymatgen.Structure): Structure for which to set up the geometry
-            optimization workflow.
+        structure: pymatgen.Structure OR path to the structure file.
         directory (str): Directory in which the geometry optimization should be performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
-        is_metal (bool): Flag that indicates whether the material for which the
-            geometry optimization should be performed is metallic. Determines the
-            smearing method used.
-        in_custodian (bool): Flag that indicates wheter the calculation should be
+        is_metal (bool): Flag that indicates the material being studied is a
+                metal, which changes the smearing from Gaussian (0.05 eV) to second
+                order Methfessel-Paxton of 0.2 eV.
+        in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
@@ -45,11 +44,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
         fw_action (fireworks.FWAction): FWAction to return after the final
                 PulayTask is completed.
 
-    Returns:
-        None
-
     """
-
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
                              functional=functional,
@@ -73,23 +68,25 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=80,
     """
     Set up a geometry optimization workflow.
 
-    Args: # TODO
-        directory (str): Directory in which the geometry optimization should be performed.
+    Args:
+        structure: pymatgen.Structure OR path to the structure file.
+        directory (str): Directory in which the optics calculation should be performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
-        in_custodian (bool): Flag that indicates wheter the calculation should be
+        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+            k-points along each reciprocal lattice vector.
+        is_metal (bool): Flag that indicates the material being studied is a
+                metal. The calculation will then use a broad Gaussian smearing of 0.3
+                eV instead of the tetrahedron method.
+        in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
 
-    Returns:
-        None
-
     """
-
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(
         structure=structure,
@@ -122,20 +119,20 @@ def get_wf_slab_optimize(slab, directory, fix_part, fix_thickness,
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
+        fix_part (str): Which part of the slab to fix. Currently only allows for
+                "center".
+        fix_thickness (int): The thickness of the fixed part of the slab, expressed in
+            number of layers.
         is_metal (bool): Flag that indicates whether the material for which the
             geometry optimization should be performed is metallic. Determines the
             smearing method used.
-        in_custodian (bool): Flag that indicates wheter the calculation should be
+        in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
 
-    Returns:
-        None
-
     """
-
     # Set up the geometry optimization Firework
     optimize_fw = SlabOptimizeFW(slab=slab,
                                  directory=directory,

@@ -29,17 +29,16 @@ class OptimizeFW(Firework):
         Initialize a Firework for a geometry optimization.
 
         Args:
-            structure: pymatgen.Structure OR path to structure file for which to run
-                the geometry optimization.
+            structure: structure: pymatgen.Structure OR path to the structure file.
+            directory (str): Directory in which the geometry optimization should be
+                performed.
             functional (tuple): Tuple with the functional choices. The first element
                 contains a string that indicates the functional used ("pbe", "hse", ...),
                 whereas the second element contains a dictionary that allows the user
                 to specify the various functional tags.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
             is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian to second order
-                Methfessel-Paxton of 0.2 eV.
+                metal, which changes the smearing from Gaussian (0.05 eV) to second
+                order Methfessel-Paxton of 0.2 eV.
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             number_nodes (int): Number of nodes that should be used for the calculations.
@@ -47,8 +46,8 @@ class OptimizeFW(Firework):
                 it is picked up by the right Fireworker.
             fw_action (fireworks.FWAction): FWAction to return after the final
                 PulayTask is completed.
-        """
 
+        """
         # Create the PyTask that sets up the calculation
         setup_optimize = PyTask(
             func="vscworkflows.setup.write_input.optimize",
@@ -94,24 +93,24 @@ class OpticsFW(Firework):
         Args:
             structure: pymatgen.Structure OR path to structure file for which to run
                 the geometry optimization.
+            directory (str): Directory in which the geometry optimization should be
+                performed.
             functional (tuple): Tuple with the functional choices. The first element
                 contains a string that indicates the functional used ("pbe", "hse", ...),
                 whereas the second element contains a dictionary that allows the user
                 to specify the various functional tags.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
+            k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+                k-points along each reciprocal lattice vector.
             is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian to second order
-                Methfessel-Paxton of 0.2 eV.
+                metal. The calculation will then use a broad Gaussian smearing of 0.3
+                eV instead of the tetrahedron method.
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             number_nodes (int): Number of nodes that should be used for the calculations.
                 Is required to add the proper `_category` to the Firework generated, so
                 it is picked up by the right Fireworker.
-            fw_action (fireworks.FWAction): FWAction to return after the final
-                PulayTask is completed.
-        """
 
+        """
         # Create the PyTask that sets up the calculation
         setup_optics = PyTask(
             func="vscworkflows.setup.write_input.optics",
@@ -153,12 +152,16 @@ class SlabOptimizeFW(Firework):
         Args:
             slab: quotas.QSlab OR path to slab structure file for which to run
                 the geometry optimization.
+            directory (str): Directory in which the geometry optimization should be
+                performed.
             functional (tuple): Tuple with the functional choices. The first element
                 contains a string that indicates the functional used ("pbe", "hse", ...),
                 whereas the second element contains a dictionary that allows the user
                 to specify the various functional tags.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
+            fix_part (str): Which part of the slab to fix. Currently only allows for
+                "center".
+            fix_thickness (int): The thickness of the fixed part of the slab, expressed in
+                number of layers.
             is_metal (bool): Flag that indicates the material being studied is a
                 metal, which changes the smearing from Gaussian to second order
                 Methfessel-Paxton of 0.2 eV.
@@ -169,8 +172,8 @@ class SlabOptimizeFW(Firework):
                 it is picked up by the right Fireworker.
             fw_action (fireworks.FWAction): FWAction to return after the geometry
                 optimization is completed. # TODO
-        """
 
+        """
         # Create the PyTask that sets up the calculation
         setup_optimize = PyTask(
             func="vscworkflows.setup.write_input.slab_optimize",
