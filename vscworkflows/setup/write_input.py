@@ -226,9 +226,9 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
 
     # Set the number of bands for the calculation
     if "magmom" in slab.site_properties.keys():
-        nbands = int(calculation.nelect * 0.6 + len(slab))
+        nbands = int(calculation.nelect * 0.6 + len(slab)) * 3
     else:
-        nbands = int((calculation.nelect + len(slab)) / 2)
+        nbands = int((calculation.nelect + len(slab)) / 2) * 3
 
     calculation.user_incar_settings.update({"NBANDS": nbands})
 
