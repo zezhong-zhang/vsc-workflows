@@ -9,7 +9,8 @@ from monty.serialization import loadfn
 from pymatgen import Structure
 from quotas import QSlab
 
-from vscworkflows.setup.sets import BulkRelaxSet, SlabRelaxSet, SlabStaticSet
+from vscworkflows.setup.sets import BulkStaticSet, BulkRelaxSet, SlabRelaxSet, \
+    SlabStaticSet
 
 """
 Scripts that write the VASP input files for various calculations.
@@ -93,7 +94,8 @@ def optimize(structure, directory="", functional=("pbe", {}),
     if isinstance(structure, str):
         structure = Structure.from_file(structure)
 
-    structure.to("json", os.path.join(directory, "initial_cathode.json"))
+    # Store the structure as a json file, so no information is lost
+    structure.to("json", os.path.join(directory, "initial_structure.json"))
 
     # Set up the calculation
     user_incar_settings = {}
@@ -117,6 +119,71 @@ def optimize(structure, directory="", functional=("pbe", {}),
 
     # Write the setup files to the geometry optimization directory
     geo_optimization.write_input(directory)
+
+    return directory
+
+
+def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
+           is_metal=False):
+    """
+    Set up a standard geometry optimization calculation for a structure. Optimizes
+    both the atomic positions as well as the unit cell (ISIF=3).
+
+    Args:
+        structure: pymatgen.Structure OR path to structure file for which to set up the
+            geometry optimization calculation.
+        directory (str): Path to the directory in which to set up the
+            geometry optimization.
+        functional (tuple): Tuple with the functional choices. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user
+            to specify the various functional tags. E.g. ("hse", {"LAEXX": 0.2}).
+        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+            k-points along each reciprocal lattice vector.
+        is_metal (bool): Flag that indicates the material being studied is a
+            metal, which changes the smearing from Gaussian to second order
+            Methfessel-Paxton of 0.2 eV.
+
+    Returns:
+        str: Path to the directory in which the calculation is set up.
+
+    """
+    # Set up the calculation directory
+    directory = _set_up_directory(directory, functional, "optics")
+    try:
+        os.makedirs(directory)
+    except FileExistsError:
+        pass
+
+    # In case the structure is given as a string, load it from the specified path
+    if isinstance(structure, str):
+        structure = Structure.from_file(structure)
+
+    structure.to("json", os.path.join(directory, "initial_structure.json"))
+
+    # Set up the defaults for the optics calculation
+    user_incar_settings = {"LOPTICS": True}
+
+    # Set up the functional
+    user_incar_settings.update(_load_functional(functional))
+
+    # Check if a magnetic moment was provided for the sites. If so, perform a
+    # spin-polarized calculation
+    if "magmom" in structure.site_properties.keys():
+        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
+
+    # For metals, use a good amount of Gaussian smearing
+    if is_metal:
+        user_incar_settings.update({"ISMEAR": 0, "SIGMA": 0.3})
+
+    # Set up the geometry optimization
+    calculation = BulkStaticSet(structure=structure,
+                                k_resolution=k_resolution,
+                                user_incar_settings=user_incar_settings,
+                                potcar_functional=DFT_FUNCTIONAL)
+
+    # Write the setup files to the geometry optimization directory
+    calculation.write_input(directory)
 
     return directory
 

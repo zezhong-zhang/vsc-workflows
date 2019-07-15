@@ -38,10 +38,32 @@ class BulkStaticSet(DictSet):
     """
     CONFIG = _load_yaml_config("staticSet")
 
-    def __init__(self, structure, **kwargs):
+    def __init__(self, structure, k_resolution=None, **kwargs):
         super(BulkStaticSet, self).__init__(
             structure, BulkRelaxSet.CONFIG, **kwargs)
+        self.k_resolution = k_resolution
         self.kwargs = kwargs
+
+    @property
+    def kpoints(self):
+        """
+        Sets up the k-points for the static calculation.
+
+        Returns:
+            :class: pymatgen.io.vasp.inputs.Kpoints
+
+        """
+        if self.k_resolution is not None:
+            # Use k_resolution to calculate kpoints
+            kpt_divisions = [int(l / 0.1 + 0.5) for l in
+                             self.structure.lattice.reciprocal_lattice.lengths]
+
+            kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
+
+            return kpoints
+
+        else:
+            return super().kpoints
 
 
 class BulkRelaxSet(DictSet):
