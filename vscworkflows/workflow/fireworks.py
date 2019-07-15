@@ -138,7 +138,7 @@ class OpticsFW(Firework):
         # Combine the FireTasks into one FireWork
         super().__init__(
             tasks=[setup_optics, vasprun],
-            name="Geometry optimization", spec=firework_spec
+            name="Optics", spec=firework_spec
         )
 
 
