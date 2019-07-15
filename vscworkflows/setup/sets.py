@@ -192,3 +192,78 @@ class SlabRelaxSet(DictSet):
             kpoints = Kpoints.gamma_automatic(kpts=kpt_calc)
 
             return kpoints
+
+
+class SlabStaticSet(DictSet):
+
+    CONFIG = _load_yaml_config("staticSet")
+
+    def __init__(self, structure, k_product=50, **kwargs):
+        super(SlabStaticSet,
+              self).__init__(structure=structure,
+                             config_dict=SlabStaticSet.CONFIG,
+                             **kwargs)
+        # Default mixing for a slab optimization
+        defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
+
+        self._config_dict["INCAR"].update(defaults)
+        self.k_product = k_product
+        self.kwargs = kwargs
+
+    @property
+    def kpoints(self):
+        """ml
+        Sets up the k-points for the slab relaxation.
+
+        For slabs, the number of
+        k-points corresponding to the third reciprocal lattice vector is set
+        to 1. The number of k-point divisions in the other two directions is
+        determined by the length of the corresponding lattice vector, by making
+        sure the product of the number of k-points and the length of the
+        corresponding lattice vector is equal to k_product, defined in the
+        initialization of the slab calculation.
+
+        Returns:
+            :class: pymatgen.io.vasp.inputs.Kpoints
+
+        """
+        # TODO What about user_kpoint_settings?
+
+        # Use k_product to calculate kpoints
+        abc = self.structure.lattice.abc
+        kpt_calc = [int(self.k_product / abc[0] + 0.5),
+                    int(self.k_product / abc[1] + 0.5), 1]
+
+        kpoints = Kpoints.gamma_automatic(kpts=kpt_calc)
+
+        return kpoints
+
+
+    # TODO: This method might still be useful; Check later
+    # @staticmethod
+    # def from_relax_calc(relax_dir, k_product, **kwargs):
+    #     """
+    #     Set up the calculation based on the output of the geometry
+    #     optimization.
+    #
+    #     """
+    #     relax_dir = os.path.abspath(relax_dir)
+    #
+    #     # TODO this can be made more general
+    #     # Obtain the structure from the CONTCAR file of the VASP calculation
+    #     try:
+    #         structure = Structure.from_file(os.path.join(relax_dir, "CONTCAR"))
+    #     except FileNotFoundError:
+    #         structure = Structure.from_file(os.path.join(relax_dir,
+    #                                                      "CONTCAR.vasp"))
+    #
+    #     # Initialize the magnetic configuration in the same way as for the
+    #     # geometry optimization
+    #     incar = Incar.from_file(os.path.join(relax_dir, "INCAR"))
+    #     magmom = incar["MAGMOM"]
+    #     structure.add_site_property("magmom", magmom)
+    #
+    #     return slabWorkFunctionSet(structure=structure,
+    #                                k_product=k_product,
+    #                                potcar_functional=DFT_FUNCTIONAL,
+    #                                **kwargs)

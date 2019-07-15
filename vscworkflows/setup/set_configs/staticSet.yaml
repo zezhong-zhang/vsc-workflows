@@ -1,25 +1,20 @@
-# Standard calculation settings used for the relaxation of a bulk material.
+# PBE+U calculations used for the work function/dos calculation of a slab.
 INCAR:
   ALGO: Normal
-  EDIFF: 1.0e-05
-  EDIFFG: 1.0e-04
+  EDIFF: 1.0e-06
   ENCUT: 500
-  IBRION: 2
-  ISIF: 3
-  ISMEAR: 0
+  ISMEAR: -5
   ISPIN: 1
   LASPH: true
   LCHARG: false
-  LREAL: AUTO
+  LORBIT: 11
+  LREAL: Auto
   LWAVE: false
-  NELM: 100
-  NELMIN: 5
-  NSW: 300
-  NWRITE: 1
-  PREC: Normal
-  SIGMA: 0.05
+  NELM: 200
+  NELMIN: 8
+  PREC: Accurate
 KPOINTS:
-  reciprocal_density: 100
+  grid_density: 3000
 POTCAR:
   Ac: Ac
   Ag: Ag
@@ -30,7 +25,7 @@ POTCAR:
   B: B
   Ba: Ba_sv
   Be: Be_sv
-  Bi: Bi_d
+  Bi: Bi
   Br: Br
   C: C
   Ca: Ca_sv
@@ -104,7 +99,7 @@ POTCAR:
   Tm: Tm_3
   U: U
   V: V_pv
-  W: W_pv
+  W: W_sv
   Xe: Xe
   Y: Y_sv
   Yb: Yb_2

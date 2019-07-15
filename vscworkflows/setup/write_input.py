@@ -9,10 +9,10 @@ from monty.serialization import loadfn
 from pymatgen import Structure
 from quotas import QSlab
 
-from vscworkflows.setup.sets import BulkRelaxSet, SlabRelaxSet
+from vscworkflows.setup.sets import BulkRelaxSet, SlabRelaxSet, SlabStaticSet
 
 """
-Setup scripts for the various calculations.
+Scripts that write the VASP input files for various calculations.
 
 """
 
@@ -56,6 +56,7 @@ def _set_up_directory(directory, functional, calculation):
         directory = os.path.abspath(directory)
 
     return directory
+
 
 # TODO: Check this method
 def optimize(structure, directory="", functional=("pbe", {}),
@@ -177,6 +178,58 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
 
     calculation.fix_slab_bulk(thickness=fix_thickness,
                               part=fix_part)
+
+    # Write the setup files to the calculation directory
+    calculation.write_input(directory)
+
+    return directory
+
+
+def slab_dos(slab, directory="", functional=("pbe", {}), calculate_locpot=False,
+             is_metal=False):
+    """
+    Set up the DOS / work function calculation.
+
+    """
+    # Set up the calculation directory
+    directory = _set_up_directory(directory, functional, "dos")
+    try:
+        os.makedirs(directory)
+    except FileExistsError:
+        pass
+
+    # In case the slab is given as a string, load it from the specified path
+    if isinstance(slab, str):
+        slab = QSlab.from_file(slab)
+
+    # Start by setting some standard settings for the calculation
+    user_incar_settings = {"NEDOS": 2000}
+
+    # Set up the functional
+    user_incar_settings.update(_load_functional(functional))
+
+    # Check if a magnetic moment was provided for the sites. If so, perform a
+    # spin-polarized calculation
+    if "magmom" in slab.site_properties.keys():
+        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
+
+        slab.add_site_property("magmom", [0] * len(slab.sites))
+
+    # Calculate the local potential if requested (e.g. for the work function)
+    if calculate_locpot:
+        user_incar_settings.update({"LVTOT": True, "LVHAR": True})
+
+    calculation = SlabStaticSet(structure=slab,
+                                user_incar_settings=user_incar_settings,
+                                potcar_functional=DFT_FUNCTIONAL)
+
+    # Set the number of bands for the calculation
+    if "magmom" in slab.site_properties.keys():
+        nbands = int(calculation.nelect * 0.6 + len(slab))
+    else:
+        nbands = int((calculation.nelect + len(slab)) / 2)
+
+    calculation.user_incar_settings.update({"NBANDS": nbands})
 
     # Write the setup files to the calculation directory
     calculation.write_input(directory)
