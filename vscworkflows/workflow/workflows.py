@@ -155,3 +155,23 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_product=80,
 
     # Create the workflow
     return Workflow(fireworks=[dos_fw, ], name=workflow_name)
+
+
+def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
+                  base_k_product=50, number_nodes=None):
+    """
+    Generate a full QUOTAS worfklow, i.e. one that:
+
+    1. Optimizes the bulk and calculates the optical properties.
+    2. Optimizes the slabs in 'slab_list' and then calculates the DOS and work function.
+
+    Args:
+        bulk:
+        slab_list:
+        functional:
+        base_k_product:
+        number_nodes:
+
+    """
+    pass
+
