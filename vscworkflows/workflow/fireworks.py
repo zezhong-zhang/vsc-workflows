@@ -53,8 +53,8 @@ class OptimizeFW(Firework):
         setup_optimize = PyTask(
             func="vscworkflows.setup.write_input.optimize",
             kwargs={"structure": structure,
-                    "functional": functional,
                     "directory": directory,
+                    "functional": functional,
                     "is_metal": is_metal}
         )
 
@@ -78,8 +78,66 @@ class OptimizeFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super(OptimizeFW, self).__init__(
+        super().__init__(
             tasks=[setup_optimize, vasprun, pulay_task],
+            name="Geometry optimization", spec=firework_spec
+        )
+
+
+class OpticsFW(Firework):
+
+    def __init__(self, structure, directory, functional, k_resolution=0.05,
+                 is_metal=False, in_custodian=False, number_nodes=None):
+        """
+        Initialize a Firework for a geometry optimization.
+
+        Args:
+            structure: pymatgen.Structure OR path to structure file for which to run
+                the geometry optimization.
+            functional (tuple): Tuple with the functional choices. The first element
+                contains a string that indicates the functional used ("pbe", "hse", ...),
+                whereas the second element contains a dictionary that allows the user
+                to specify the various functional tags.
+            directory (str): Directory in which the geometry optimization should be
+                performed.
+            is_metal (bool): Flag that indicates the material being studied is a
+                metal, which changes the smearing from Gaussian to second order
+                Methfessel-Paxton of 0.2 eV.
+            in_custodian (bool): Flag that indicates whether the calculation should be
+                run inside a Custodian.
+            number_nodes (int): Number of nodes that should be used for the calculations.
+                Is required to add the proper `_category` to the Firework generated, so
+                it is picked up by the right Fireworker.
+            fw_action (fireworks.FWAction): FWAction to return after the final
+                PulayTask is completed.
+        """
+
+        # Create the PyTask that sets up the calculation
+        setup_optics = PyTask(
+            func="vscworkflows.setup.write_input.optics",
+            kwargs={"structure": structure,
+                    "directory": directory,
+                    "functional": functional,
+                    "k_resolution": k_resolution,
+                    "is_metal": is_metal}
+        )
+
+        # Create the PyTask that runs the calculation
+        if in_custodian:
+            vasprun = CustodianTask(directory=directory)
+        else:
+            vasprun = VaspTask(directory=directory)
+
+        # Only add number of nodes to spec if specified
+        firework_spec = {}
+        if number_nodes is None or number_nodes == 0:
+            firework_spec.update({"_category": "none"})
+        else:
+            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+
+        # Combine the FireTasks into one FireWork
+        super().__init__(
+            tasks=[setup_optics, vasprun],
             name="Geometry optimization", spec=firework_spec
         )
 
@@ -138,7 +196,7 @@ class SlabOptimizeFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super(SlabOptimizeFW, self).__init__(
+        super().__init__(
             tasks=[setup_optimize, vasprun],
             name="Geometry optimization", spec=firework_spec
         )
@@ -183,7 +241,7 @@ class SlabDosFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super(SlabDosFW, self).__init__(
+        super().__init__(
             tasks=[setup_dos, vasprun],
             name="DOS Calculation", spec=firework_spec
         )

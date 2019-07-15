@@ -4,7 +4,8 @@
 
 from fireworks import Workflow
 
-from vscworkflows.workflow.fireworks import OptimizeFW, SlabOptimizeFW, SlabDosFW
+from vscworkflows.workflow.fireworks import OptimizeFW, OpticsFW, SlabOptimizeFW, \
+    SlabDosFW
 
 """
 Definition of all workflows in the package.
@@ -65,6 +66,47 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
     # Create the workflow
     return Workflow(fireworks=[optimize_fw, ],
                     name=workflow_name)
+
+
+def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=80,
+                  is_metal=False, in_custodian=False, number_nodes=None):
+    """
+    Set up a geometry optimization workflow.
+
+    Args: # TODO
+        directory (str): Directory in which the geometry optimization should be performed.
+        functional (tuple): Tuple with the functional details. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user
+            to specify the various functional tags.
+        in_custodian (bool): Flag that indicates wheter the calculation should be
+            run inside a Custodian.
+        number_nodes (int): Number of nodes that should be used for the calculations.
+            Is required to add the proper `_category` to the Firework generated, so
+            it is picked up by the right Fireworker.
+
+    Returns:
+        None
+
+    """
+
+    # Set up the geometry optimization Firework
+    optics_fw = OpticsFW(
+        structure=structure,
+        directory=directory,
+        functional=functional,
+        k_resolution=k_resolution,
+        is_metal=is_metal,
+        in_custodian=in_custodian,
+        number_nodes=number_nodes
+    )
+
+    # Set up a clear name for the workflow
+    workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
+    workflow_name += " " + str(functional)
+
+    # Create the workflow
+    return Workflow(fireworks=[optics_fw, ], name=workflow_name)
 
 
 def get_wf_slab_optimize(slab, directory, fix_part, fix_thickness,
@@ -174,4 +216,3 @@ def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
 
     """
     pass
-
