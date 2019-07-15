@@ -198,7 +198,7 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
 
 
 def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
-                  base_k_product=50, number_nodes=None):
+                  base_k_resolution=50, number_nodes=None):
     """
     Generate a full QUOTAS worfklow, i.e. one that:
 
@@ -209,7 +209,7 @@ def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
         bulk:
         slab_list:
         functional:
-        base_k_product:
+        base_k_resolution:
         number_nodes:
 
     """
