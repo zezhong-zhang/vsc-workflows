@@ -23,7 +23,7 @@ __date__ = "Jun 2019"
 
 class OptimizeFW(Firework):
 
-    def __init__(self, structure, functional, directory, is_metal=False,
+    def __init__(self, structure, directory, functional, is_metal=False,
                  in_custodian=False, number_nodes=None, fw_action=None):
         """
         Initialize a Firework for a geometry optimization.
@@ -86,7 +86,7 @@ class OptimizeFW(Firework):
 
 class SlabOptimizeFW(Firework):
 
-    def __init__(self, slab, functional, directory, fix_part,
+    def __init__(self, slab, directory, functional, fix_part,
                  fix_thickness, is_metal=False,
                  in_custodian=False, number_nodes=None, fw_action=None):
         """
@@ -141,4 +141,49 @@ class SlabOptimizeFW(Firework):
         super(SlabOptimizeFW, self).__init__(
             tasks=[setup_optimize, vasprun],
             name="Geometry optimization", spec=firework_spec
+        )
+
+
+class SlabDosFW(Firework):
+
+    def __init__(self, slab, directory, functional, k_product=80,
+                 calculate_locpot=False, in_custodian=False,
+                 number_nodes=None):
+        """
+
+        Args:
+            slab:
+            k_product:
+            in_custodian:
+
+        """
+
+        # Set up the DOS calculation, based on the structure found from the
+        # geometry optimization.
+        setup_dos = PyTask(func="vscworkflows.setup.write_input.slab_dos",
+                           kwargs={
+                               "slab": slab,
+                               "directory": directory,
+                               "functional": functional,
+                               "k_product": k_product,
+                               "calculate_locpot": calculate_locpot
+                           })
+
+        # Create the PyTask that runs the calculation
+        if in_custodian:
+            vasprun = CustodianTask(directory=directory)
+        else:
+            vasprun = VaspTask(directory=directory)
+
+        # Only add number of nodes to spec if specified
+        firework_spec = {}
+        if number_nodes is None or number_nodes == 0:
+            firework_spec.update({"_category": "none"})
+        else:
+            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+
+        # Combine the FireTasks into one FireWork
+        super(SlabDosFW, self).__init__(
+            tasks=[setup_dos, vasprun],
+            name="DOS Calculation", spec=firework_spec
         )

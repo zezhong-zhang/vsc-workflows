@@ -185,8 +185,8 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
     return directory
 
 
-def slab_dos(slab, directory="", functional=("pbe", {}), calculate_locpot=False,
-             is_metal=False):
+def slab_dos(slab, directory="", functional=("pbe", {}),
+             k_product=80, calculate_locpot=False):
     """
     Set up the DOS / work function calculation.
 
@@ -220,6 +220,7 @@ def slab_dos(slab, directory="", functional=("pbe", {}), calculate_locpot=False,
         user_incar_settings.update({"LVTOT": True, "LVHAR": True})
 
     calculation = SlabStaticSet(structure=slab,
+                                k_product=k_product,
                                 user_incar_settings=user_incar_settings,
                                 potcar_functional=DFT_FUNCTIONAL)
 

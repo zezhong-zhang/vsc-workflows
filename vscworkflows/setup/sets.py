@@ -212,7 +212,7 @@ class SlabStaticSet(DictSet):
 
     @property
     def kpoints(self):
-        """ml
+        """
         Sets up the k-points for the slab relaxation.
 
         For slabs, the number of
