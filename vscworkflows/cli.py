@@ -62,16 +62,22 @@ def main():
 
 
 @main.command(context_settings=CONTEXT_SETTINGS)
-@click.option("-N", "--lpad_name", default="base")
-@click.option("-f", "--fworker_name", default="base")
+@click.option("-N", "--lpad_name", default="base",
+              help="Name of the configured launchpad that contains the details of the "
+                   "mongoDB server you want to run Fireworks from. Defaults to 'base'.")
+@click.option("-f", "--fworker_name", default="base",
+              help="Name of the fireworker which you are submitting the jobs to, i.e. "
+                   "the cluster you are currently logged into. Defaults to 'base'. If "
+                   "you have configured the workflows for another cluster (e.g. hopper), "
+                   "you can use this option to use that configuration.")
 @click.option("-n", "--number_nodes", default=1,
               help="Number of nodes to request for the job. This will be added to the "
                    "category of the fireworker, so it will pick up Fireworks with the "
                    "same category.")
 @click.option("-t", "--walltime", default=72,
-              help="Walltime of the job, expressed in hours.")
+              help="Walltime of the job, expressed in hours. Defaults to 72.")
 @click.option("-j", "--number_jobs", default=1,
-              help="")
+              help="The number of jobs to submit to the queue.")
 def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs):
     """
     Launch jobs to the queue that will accept Fireworks.
