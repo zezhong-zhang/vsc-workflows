@@ -39,8 +39,7 @@ class BulkStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, k_resolution=None, **kwargs):
-        super(BulkStaticSet, self).__init__(
-            structure, BulkStaticSet.CONFIG, **kwargs)
+        super().__init__(structure, BulkStaticSet.CONFIG, **kwargs)
         self.k_resolution = k_resolution
         self.kwargs = kwargs
 
