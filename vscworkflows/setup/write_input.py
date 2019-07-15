@@ -162,7 +162,7 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
     structure.to("json", os.path.join(directory, "initial_structure.json"))
 
     # Set up the defaults for the optics calculation
-    user_incar_settings = {"LOPTICS": True}
+    user_incar_settings = {"LOPTICS": True, "EDIFF": 1.0e-6}
 
     # Set up the functional
     user_incar_settings.update(_load_functional(functional))
