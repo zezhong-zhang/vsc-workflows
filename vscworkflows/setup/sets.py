@@ -73,18 +73,17 @@ class BulkRelaxSet(DictSet):
     CONFIG = _load_yaml_config("relaxSet")
 
     def __init__(self, structure, **kwargs):
-        super(BulkRelaxSet, self).__init__(
-            structure, BulkRelaxSet.CONFIG, **kwargs)
+        super().__init__(structure, BulkRelaxSet.CONFIG, **kwargs)
         self.kwargs = kwargs
 
 
 class SlabStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
-    def __init__(self, structure, k_resolution=None, **kwargs):
-        super(SlabStaticSet, self).__init__(structure=structure,
-                                            config_dict=SlabStaticSet.CONFIG,
-                                            **kwargs)
+    def __init__(self, structure, k_resolution=0.1, **kwargs):
+        super().__init__(structure=structure,
+                         config_dict=SlabStaticSet.CONFIG,
+                         **kwargs)
         # Default mixing for a slab optimization
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
 
@@ -101,7 +100,9 @@ class SlabStaticSet(DictSet):
             :class: pymatgen.io.vasp.inputs.Kpoints
 
         """
-        if self.k_resolution is not None:
+        if self.user_kpoints_settings is not None:
+            return super().kpoints
+        else:
             # Use k_resolution to calculate kpoints
             kpt_divisions = [int(l / self.k_resolution + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
@@ -110,9 +111,6 @@ class SlabStaticSet(DictSet):
             kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
 
             return kpoints
-
-        else:
-            return super().kpoints
 
     # TODO: This method might still be useful; Check later
     # @staticmethod
@@ -153,9 +151,9 @@ class SlabRelaxSet(DictSet):
     CONFIG = _load_yaml_config("relaxSet")
 
     def __init__(self, structure, k_resolution=0.2, **kwargs):
-        super(SlabRelaxSet, self).__init__(structure=structure,
-                                           config_dict=SlabRelaxSet.CONFIG,
-                                           **kwargs)
+        super().__init__(structure=structure,
+                         config_dict=SlabRelaxSet.CONFIG,
+                         **kwargs)
 
         # Defaults for a slab optimization
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
@@ -265,13 +263,15 @@ class SlabRelaxSet(DictSet):
     @property
     def kpoints(self):
         """
-        Sets up the k-points for the calculation.
+        Sets up the k-points for the static calculation.
 
         Returns:
             :class: pymatgen.io.vasp.inputs.Kpoints
 
         """
-        if self.k_resolution is not None:
+        if self.user_kpoints_settings is not None:
+            return super().kpoints
+        else:
             # Use k_resolution to calculate kpoints
             kpt_divisions = [int(l / self.k_resolution + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
@@ -280,6 +280,3 @@ class SlabRelaxSet(DictSet):
             kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
 
             return kpoints
-
-        else:
-            return super().kpoints

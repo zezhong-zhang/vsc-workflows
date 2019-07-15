@@ -153,35 +153,36 @@ def get_wf_slab_optimize(slab, directory, fix_part, fix_thickness,
                     name=workflow_name)
 
 
-def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_product=80,
+def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
                     calculate_locpot=False, in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow.
 
     Args:
-        slab (Qslab): Slab for which to set up the geometry optimization workflow.
+        slab (Qslab): Slab for which to set up the DOS workflow.
         directory (str): Directory in which the geometry optimization should be performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
+        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+            k-points along each reciprocal lattice vector. Note that for a slab
+            calculation we always only consider one point in the c-direction.
+        calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
+            determine the work function.
         in_custodian (bool): Flag that indicates wheter the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
 
-    Returns:
-        None
-
     """
-
     # Set up the geometry optimization Firework
     dos_fw = SlabDosFW(
         slab=slab,
         directory=directory,
         functional=functional,
-        k_product=k_product,
+        k_resolution=k_resolution,
         calculate_locpot=calculate_locpot,
         in_custodian=in_custodian,
         number_nodes=number_nodes

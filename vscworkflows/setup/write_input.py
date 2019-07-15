@@ -256,7 +256,7 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
 
 
 def slab_dos(slab, directory="", functional=("pbe", {}),
-             k_product=80, calculate_locpot=False):
+             k_resolution=0.1, calculate_locpot=False):
     """
     Set up the DOS / work function calculation.
 
@@ -269,7 +269,9 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user to
             specify the various functional tags.
-        k_product:
+        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+            k-points along each reciprocal lattice vector. Note that for a slab
+            calculation we always only consider one point in the c-direction.
         calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
             determine the work function.
 
@@ -305,7 +307,7 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
         user_incar_settings.update({"LVTOT": True, "LVHAR": True})
 
     calculation = SlabStaticSet(structure=slab,
-                                k_product=k_product,
+                                k_resolution=k_resolution,
                                 user_incar_settings=user_incar_settings,
                                 potcar_functional=DFT_FUNCTIONAL)
 

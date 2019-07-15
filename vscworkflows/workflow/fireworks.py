@@ -207,18 +207,33 @@ class SlabOptimizeFW(Firework):
 
 class SlabDosFW(Firework):
 
-    def __init__(self, slab, directory, functional, k_product=80,
+    def __init__(self, slab, directory, functional, k_resolution=0.1,
                  calculate_locpot=False, in_custodian=False,
                  number_nodes=None):
         """
+        Firework for calculating the DOS and work function of a slab.
 
         Args:
-            slab:
-            k_product:
-            in_custodian:
+            slab: quotas.QSlab OR path to slab structure file for which to run
+            the DOS calculation.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
+        functional (tuple): Tuple with the functional choices. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user to
+            specify the various functional tags.
+        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
+            k-points along each reciprocal lattice vector. Note that for a slab
+            calculation we always only consider one point in the c-direction.
+        calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
+            determine the work function.
+        in_custodian (bool): Flag that indicates whether the calculation should be
+            run inside a Custodian.
+        number_nodes (int): Number of nodes that should be used for the calculations.
+            Is required to add the proper `_category` to the Firework generated, so
+            it is picked up by the right Fireworker.
 
         """
-
         # Set up the DOS calculation, based on the structure found from the
         # geometry optimization.
         setup_dos = PyTask(func="vscworkflows.setup.write_input.slab_dos",
@@ -226,7 +241,7 @@ class SlabDosFW(Firework):
                                "slab": slab,
                                "directory": directory,
                                "functional": functional,
-                               "k_product": k_product,
+                               "k_resolution": k_resolution,
                                "calculate_locpot": calculate_locpot
                            })
 
