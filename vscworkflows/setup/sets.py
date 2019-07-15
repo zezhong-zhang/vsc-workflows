@@ -20,7 +20,7 @@ __copyright__ = "Copyright 2019, Marnik Bercx, University of Antwerp"
 __version__ = "pre-alpha"
 __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
-__date__ = "Jun 2019"
+__date__ = "Jul 2019"
 
 MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "set_configs")
