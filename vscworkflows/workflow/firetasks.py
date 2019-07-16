@@ -7,7 +7,10 @@ import subprocess
 
 import numpy as np
 
+from quotas import QSlab
+
 from pymatgen import Structure
+from pymatgen.io.vasp.outputs import Vasprun
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, PyTask, \
     explicit_serialize
 from custodian import Custodian
@@ -84,6 +87,44 @@ class CustodianTask(FiretaskBase):
 
 
 @explicit_serialize
+class VaspWriteFinalStructureTask(FiretaskBase):
+    """
+    Obtain the final structure from a calculation and write it to a json file.
+
+    """
+    required_params = ["directory"]
+    optional_params = []
+
+    def run_task(self, fw_spec):
+        directory = self.get("directory")
+        vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
+        vasprun.final_structure.to("json", os.path.join(directory,
+                                                        "final_structure.json"))
+
+
+@explicit_serialize
+class VaspWriteFinalSlabTask(FiretaskBase):
+    """
+    Obtain the final slab from a calculation and write it to a json file. Note that
+    the difference between this Firetask and the Structure one is that you cannot
+    extract all information on a QSlab from the vasprun.xml file. Instead, the initial
+    QSlab is stored as a json file when the input is written, and this Firetask updates
+    the details from that file.
+
+    """
+    required_params = ["directory"]
+    optional_params = []
+
+    def run_task(self, fw_spec):
+
+        directory = self.get("directory")
+
+        initial_slab = QSlab.from_file(os.path.join(directory, "initial_slab.json"))
+        initial_slab.update_sites(directory)
+        initial_slab.to("json", os.path.join(directory, "final_slab.json"))
+
+
+@explicit_serialize
 class VaspSetupTask(FiretaskBase):
     """
     FireTask used for setting up the setup files of a calculation. The setup scripts
@@ -128,15 +169,7 @@ class PulayTask(FiretaskBase):
     pulay_tolerance = 5e-2
 
     def run_task(self, fw_spec):
-        """
 
-        Args:
-            fw_spec:
-
-        Returns:
-            FWAction
-
-        """
         # Extract the parameters into variables; this makes for cleaner code IMO
         directory = self["directory"]
         in_custodian = self.get("in_custodian", False)
@@ -181,6 +214,11 @@ class PulayTask(FiretaskBase):
             else:
                 vasprun = VaspTask(directory=directory)
 
+            # Write the final structure to a json file for subsequent calculations
+            write_final_structure = VaspWriteFinalStructureTask(
+                directory=directory
+            )
+
             # Create the PyTask that check the Pulay stresses again
             pulay_task = PulayTask(
                 directory=directory, in_custodian=in_custodian,
@@ -196,7 +234,8 @@ class PulayTask(FiretaskBase):
                 firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
             # Combine the two FireTasks into one FireWork
-            optimize_fw = Firework(tasks=[copy_contcar, vasprun, pulay_task],
+            optimize_fw = Firework(tasks=[copy_contcar, vasprun,
+                                          write_final_structure, pulay_task],
                                    name="Pulay Step",
                                    spec=firework_spec)
 

@@ -6,7 +6,8 @@ import os
 
 from fireworks import PyTask, Firework
 
-from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, PulayTask
+from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
+    VaspWriteFinalStructureTask, PulayTask
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -63,6 +64,11 @@ class OptimizeFW(Firework):
         else:
             vasprun = VaspTask(directory=directory)
 
+        # Write the final structure to a json file for subsequent calculations
+        write_final_structure = VaspWriteFinalStructureTask(
+            directory=directory
+        )
+
         # Create the PyTask that check the Pulay stresses
         pulay_task = PulayTask(directory=directory,
                                in_custodian=in_custodian,
@@ -78,7 +84,7 @@ class OptimizeFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_optimize, vasprun, pulay_task],
+            tasks=[setup_optimize, vasprun, write_final_structure, pulay_task],
             name="Geometry optimization", spec=firework_spec
         )
 
