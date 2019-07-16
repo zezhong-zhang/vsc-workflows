@@ -7,7 +7,7 @@ import os
 from fireworks import PyTask, Firework
 
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
-    VaspWriteFinalStructureTask, PulayTask
+    VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, PulayTask
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -133,6 +133,11 @@ class OpticsFW(Firework):
         else:
             vasprun = VaspTask(directory=directory)
 
+        # Write the final structure to a json file for subsequent calculations
+        write_final_structure = VaspWriteFinalStructureTask(
+            directory=directory
+        )
+
         # Only add number of nodes to spec if specified
         firework_spec = {}
         if number_nodes is None or number_nodes == 0:
@@ -142,7 +147,7 @@ class OpticsFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_optics, vasprun],
+            tasks=[setup_optics, vasprun, write_final_structure],
             name="Optics", spec=firework_spec
         )
 
@@ -197,6 +202,11 @@ class SlabOptimizeFW(Firework):
         else:
             vasprun = VaspTask(directory=directory)
 
+        # Write the final slab to a json file for subsequent calculations
+        write_final_slab = VaspWriteFinalSlabTask(
+            directory=directory
+        )
+
         # Only add number of nodes to spec if specified
         firework_spec = {}
         if number_nodes is None or number_nodes == 0:
@@ -206,7 +216,7 @@ class SlabOptimizeFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_optimize, vasprun],
+            tasks=[setup_optimize, vasprun, write_final_slab],
             name="Geometry optimization", spec=firework_spec
         )
 
@@ -257,6 +267,11 @@ class SlabDosFW(Firework):
         else:
             vasprun = VaspTask(directory=directory)
 
+        # Write the final slab to a json file for subsequent calculations
+        write_final_slab = VaspWriteFinalSlabTask(
+            directory=directory
+        )
+
         # Only add number of nodes to spec if specified
         firework_spec = {}
         if number_nodes is None or number_nodes == 0:
@@ -266,6 +281,6 @@ class SlabDosFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_dos, vasprun],
+            tasks=[setup_dos, vasprun, write_final_slab],
             name="DOS Calculation", spec=firework_spec
         )

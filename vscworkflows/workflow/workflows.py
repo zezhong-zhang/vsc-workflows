@@ -2,7 +2,9 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-from fireworks import Workflow
+import os
+
+from fireworks import Workflow, FWAction
 
 from vscworkflows.workflow.fireworks import OptimizeFW, OpticsFW, SlabOptimizeFW, \
     SlabDosFW
@@ -18,6 +20,18 @@ __version__ = "pre-alpha"
 __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
+
+
+def _set_up_relative_directory(directory, functional, calculation):
+    # Set up a calculation directory for a specific functional and calculation
+
+    directory = os.path.join(os.path.abspath(directory), functional[0])
+    if functional[0] == "pbeu":
+        directory += "_" + "".join(k + str(functional[1]["LDAUU"][k]) for k
+                                   in functional[1]["LDAUU"].keys())
+    directory += "_" + calculation
+
+    return directory
 
 
 def get_wf_optimize(structure, directory, functional=("pbe", {}),
@@ -170,7 +184,7 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
             calculation we always only consider one point in the c-direction.
         calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
             determine the work function.
-        in_custodian (bool): Flag that indicates wheter the calculation should be
+        in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
@@ -197,8 +211,9 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
     return Workflow(fireworks=[dos_fw, ], name=workflow_name)
 
 
-def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
-                  base_k_resolution=50, number_nodes=None):
+def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
+                  base_k_resolution=50, is_metal=False,
+                  in_custodian=False, number_nodes=None):
     """
     Generate a full QUOTAS worfklow, i.e. one that:
 
@@ -213,4 +228,36 @@ def get_wf_quotas(bulk, slab_list, functional=("pbe", {}),
         number_nodes:
 
     """
-    pass
+
+    bulk_optimize_dir = _set_up_relative_directory(directory, functional,
+                                                   calculation="optimize")
+    bulk_optimize = OptimizeFW(
+        structure=bulk,
+        functional=functional,
+        directory=bulk_optimize_dir,
+        is_metal=is_metal,
+        in_custodian=in_custodian,
+        number_nodes=number_nodes,
+        fw_action=fw_action
+    )
+
+    FWAction(additions=[])
+
+    bulk_optics = OpticsFW(
+        structure=os.path.join(bulk_optimize_dir, "final_structure.json"),
+        directory=directory,
+        functional=functional,
+        k_resolution=k_resolution,
+        is_metal=is_metal,
+        in_custodian=in_custodian,
+        number_nodes=number_nodes
+    )
+
+    for slab in slab_list:
+        slab_optimize = SlabOptimizeFW(
+            slab=slab
+        )
+
+        slab_dos = SlabDosFW(
+            slab=slab
+        )
