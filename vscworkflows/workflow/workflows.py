@@ -260,23 +260,52 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         fw_action=FWAction(additions=[bulk_optics])
     )
 
+    fireworks = [bulk_optimize]
+    links_dict = {}
+
+    for slab_dict in slab_list:
+        # Set up the directories for the slab calculations
+
+        slab_dir = str(slab_dict["slab"].miller_index).strip("()").replace(", ", "")
+
+        slab_optimize_dir = _set_up_relative_directory(
+            directory=os.path.join(directory, slab_dir),
+            functional=functional,
+            calculation="optimize"
+        )
+
+        slab_dos_dir = _set_up_relative_directory(
+            directory=os.path.join(directory, slab_dir),
+            functional=functional,
+            calculation="dos"
+        )
+
+        slab_optimize = SlabOptimizeFW(
+            slab=slab_dict["slab"],
+            directory=slab_optimize_dir,
+            fix_thickness=slab_dict["fix_thickness"],
+            functional=functional,
+            is_metal=is_metal,
+            in_custodian=in_custodian,
+            number_nodes=number_nodes
+        )
+
+        slab_dos = SlabDosFW(
+            slab=os.path.join(slab_optimize_dir, "final_slab.json"),
+            directory=slab_dos_dir,
+            functional=functional,
+            k_resolution=base_k_resolution,
+            calculate_locpot=True,
+            in_custodian=in_custodian,
+            number_nodes=number_nodes
+        )
+
+        fireworks.extend([slab_optimize, slab_dos])
+        links_dict.update({slab_optimize: [slab_dos]})
+
     # Set up a clear name for the workflow
     workflow_name = str(bulk.composition.reduced_formula).replace(" ", "")
-    workflow_name += "\n QUOTAS"
-    workflow_name += "\n " + str(functional)
+    workflow_name += " - QUOTAS - "
+    workflow_name += " " + str(functional)
 
-    return Workflow(fireworks=[bulk_optimize], name=workflow_name)
-
-    # for slab_dict in slab_list:
-    #
-    #     slab_optimize = SlabOptimizeFW(slab=slab_dict["slab"],
-    #                                    directory=directory,
-    #                                    fix_thickness=slab_dict["fix_thickness"],
-    #                                    functional=functional,
-    #                                    is_metal=is_metal,
-    #                                    in_custodian=in_custodian,
-    #                                    number_nodes=number_nodes)
-    #
-    #     slab_dos = SlabDosFW(
-    #         slab=
-    #     )
+    return Workflow(fireworks=fireworks, links_dict=links_dict, name=workflow_name)
