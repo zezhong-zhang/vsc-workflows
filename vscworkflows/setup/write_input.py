@@ -228,7 +228,7 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
         slab = QSlab.from_file(slab)
 
     # Store the full QSlab object
-    slab.to("json", "initial_slab.json")
+    slab.to("json", os.path.join(directory, "initial_slab.json"))
 
     user_incar_settings = {}
 

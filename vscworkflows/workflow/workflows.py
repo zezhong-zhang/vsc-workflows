@@ -237,7 +237,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     bulk_optics_dir = _set_up_relative_directory(
         directory=os.path.join(directory, "bulk"),
         functional=functional,
-        calculation="optimize"
+        calculation="optics"
     )
 
     bulk_optics = OpticsFW(
