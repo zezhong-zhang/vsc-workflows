@@ -228,6 +228,10 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         number_nodes:
 
     """
+
+    optics_k_resolution = base_k_resolution / 3
+    dos_k_resolution = base_k_resolution / 2
+
     # Set up the directories for the bulk calculations
     bulk_optimize_dir = _set_up_relative_directory(
         directory=os.path.join(directory, "bulk"),
@@ -244,7 +248,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         structure=os.path.join(bulk_optimize_dir, "final_structure.json"),
         directory=bulk_optics_dir,
         functional=functional,
-        k_resolution=base_k_resolution,
+        k_resolution=optics_k_resolution,
         is_metal=is_metal,
         in_custodian=in_custodian,
         number_nodes=number_nodes
@@ -295,7 +299,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
             slab=os.path.join(slab_optimize_dir, "final_slab.json"),
             directory=slab_dos_dir,
             functional=functional,
-            k_resolution=base_k_resolution,
+            k_resolution=dos_k_resolution,
             calculate_locpot=True,
             in_custodian=in_custodian,
             number_nodes=number_nodes
