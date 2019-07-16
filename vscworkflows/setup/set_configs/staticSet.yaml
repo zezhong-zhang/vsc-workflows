@@ -1,6 +1,6 @@
 # PBE+U calculations used for the work function/dos calculation of a slab.
 INCAR:
-  ALGO: Normal
+  ALGO: All
   EDIFF: 1.0e-06
   ENCUT: 500
   ISMEAR: -5

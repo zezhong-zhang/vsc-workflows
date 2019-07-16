@@ -1,6 +1,6 @@
 # Standard calculation settings used for the relaxation of a bulk material.
 INCAR:
-  ALGO: Normal
+  ALGO: Fast
   EDIFF: 1.0e-05
   EDIFFG: 1.0e-04
   ENCUT: 500
