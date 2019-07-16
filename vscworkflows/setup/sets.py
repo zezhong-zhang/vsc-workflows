@@ -84,8 +84,9 @@ class SlabStaticSet(DictSet):
         super().__init__(structure=structure,
                          config_dict=SlabStaticSet.CONFIG,
                          **kwargs)
-        # Default mixing for a slab optimization
-        defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001}
+        # Default settings for a static slab calculation
+        defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001, "ISMEAR": 0,
+                    "SIGMA": 0.01}
 
         self._config_dict["INCAR"].update(defaults)
         self.k_resolution = k_resolution
