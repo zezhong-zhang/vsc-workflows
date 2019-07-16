@@ -94,7 +94,7 @@ def optimize(structure, directory="", functional=("pbe", {}),
     if isinstance(structure, str):
         structure = Structure.from_file(structure)
 
-    # Store the structure as a json file, so no information is lost
+    # Store the full Structure as a json file
     structure.to("json", os.path.join(directory, "initial_structure.json"))
 
     # Set up the calculation
@@ -159,6 +159,7 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
     if isinstance(structure, str):
         structure = Structure.from_file(structure)
 
+    # Store the full Structure as a json file
     structure.to("json", os.path.join(directory, "initial_structure.json"))
 
     # Set up the defaults for the optics calculation
@@ -226,6 +227,9 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
     if isinstance(slab, str):
         slab = QSlab.from_file(slab)
 
+    # Store the full QSlab object
+    slab.to("json", "initial_slab.json")
+
     user_incar_settings = {}
 
     # Set up the functional
@@ -288,6 +292,9 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
     # In case the slab is given as a string, load it from the specified path
     if isinstance(slab, str):
         slab = QSlab.from_file(slab)
+
+    # Store the full QSlab object
+    slab.to("json", "initial_slab.json")
 
     # Start by setting some standard settings for the calculation
     user_incar_settings = {"NEDOS": 2000}
