@@ -294,7 +294,7 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
         slab = QSlab.from_file(slab)
 
     # Store the full QSlab object
-    slab.to("json", "initial_slab.json")
+    slab.to("json", os.path.join(directory, "initial_slab.json"))
 
     # Start by setting some standard settings for the calculation
     user_incar_settings = {"NEDOS": 2000}
