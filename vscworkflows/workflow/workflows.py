@@ -212,7 +212,7 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
 
 
 def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
-                  base_k_resolution=50, is_metal=False,
+                  base_k_resolution=0.1, is_metal=False,
                   in_custodian=False, number_nodes=None):
     """
     Generate a full QUOTAS worfklow, i.e. one that:
@@ -228,9 +228,28 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         number_nodes:
 
     """
+    # Set up the directories for the bulk calculations
+    bulk_optimize_dir = _set_up_relative_directory(
+        directory=os.path.join(directory, "bulk"),
+        functional=functional,
+        calculation="optimize"
+    )
+    bulk_optics_dir = _set_up_relative_directory(
+        directory=os.path.join(directory, "bulk"),
+        functional=functional,
+        calculation="optimize"
+    )
 
-    bulk_optimize_dir = _set_up_relative_directory(directory, functional,
-                                                   calculation="optimize")
+    bulk_optics = OpticsFW(
+        structure=os.path.join(bulk_optimize_dir, "final_structure.json"),
+        directory=bulk_optics_dir,
+        functional=functional,
+        k_resolution=base_k_resolution,
+        is_metal=is_metal,
+        in_custodian=in_custodian,
+        number_nodes=number_nodes
+    )
+
     bulk_optimize = OptimizeFW(
         structure=bulk,
         functional=functional,
@@ -238,26 +257,26 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         is_metal=is_metal,
         in_custodian=in_custodian,
         number_nodes=number_nodes,
-        fw_action=fw_action
+        fw_action=FWAction(additions=[bulk_optics])
     )
 
-    FWAction(additions=[])
+    # Set up a clear name for the workflow
+    workflow_name = str(bulk.composition.reduced_formula).replace(" ", "")
+    workflow_name += "\n QUOTAS"
+    workflow_name += "\n " + str(functional)
 
-    bulk_optics = OpticsFW(
-        structure=os.path.join(bulk_optimize_dir, "final_structure.json"),
-        directory=directory,
-        functional=functional,
-        k_resolution=k_resolution,
-        is_metal=is_metal,
-        in_custodian=in_custodian,
-        number_nodes=number_nodes
-    )
+    return Workflow(fireworks=[bulk_optimize], name=workflow_name)
 
-    for slab in slab_list:
-        slab_optimize = SlabOptimizeFW(
-            slab=slab
-        )
-
-        slab_dos = SlabDosFW(
-            slab=slab
-        )
+    # for slab_dict in slab_list:
+    #
+    #     slab_optimize = SlabOptimizeFW(slab=slab_dict["slab"],
+    #                                    directory=directory,
+    #                                    fix_thickness=slab_dict["fix_thickness"],
+    #                                    functional=functional,
+    #                                    is_metal=is_metal,
+    #                                    in_custodian=in_custodian,
+    #                                    number_nodes=number_nodes)
+    #
+    #     slab_dos = SlabDosFW(
+    #         slab=
+    #     )

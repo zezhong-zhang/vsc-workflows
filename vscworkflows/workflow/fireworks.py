@@ -156,7 +156,7 @@ class SlabOptimizeFW(Firework):
 
     def __init__(self, slab, directory, functional, fix_part,
                  fix_thickness, is_metal=False,
-                 in_custodian=False, number_nodes=None, fw_action=None):
+                 in_custodian=False, number_nodes=None):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -181,8 +181,6 @@ class SlabOptimizeFW(Firework):
             number_nodes (int): Number of nodes that should be used for the calculations.
                 Is required to add the proper `_category` to the Firework generated, so
                 it is picked up by the right Fireworker.
-            fw_action (fireworks.FWAction): FWAction to return after the geometry
-                optimization is completed. # TODO
 
         """
         # Create the PyTask that sets up the calculation
