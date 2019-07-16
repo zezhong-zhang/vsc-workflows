@@ -283,6 +283,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         slab_optimize = SlabOptimizeFW(
             slab=slab_dict["slab"],
             directory=slab_optimize_dir,
+            fix_part="center",
             fix_thickness=slab_dict["fix_thickness"],
             functional=functional,
             is_metal=is_metal,
