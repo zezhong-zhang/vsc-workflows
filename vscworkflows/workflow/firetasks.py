@@ -48,6 +48,9 @@ class VaspTask(FiretaskBase):
         stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
+        with open(os.path.join(self["directory"], "nodes_info"), "w") as file:
+            file.write(os.cpu_count())
+
         with open(stdout_file, 'w') as f_std, \
                 open(stderr_file, "w", buffering=1) as f_err:
             p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err)
