@@ -173,18 +173,16 @@ class VaspParallelizationTask(FiretaskBase):
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
-    def _find_kpar(n_kpoints, n_cores, inactive_core_tolerance=8):
+    def _find_kpar(n_kpoints, n_cores):
 
-        for kpar in list(range(n_cores, 0, -1)):
+        suitable_divisors = np.array(
+            [i for i in list(range(n_cores, 0, -1))
+             if n_cores % i == 0 and i < n_kpoints]
+        )
 
-            if n_cores % kpar == 0:
+        good_kpar_guess = np.sqrt(n_cores)
 
-                cores_per_kpoint = n_cores / kpar
-                leftover_kpoints = n_kpoints % kpar
-
-                if (n_cores - leftover_kpoints * cores_per_kpoint) % n_cores <= \
-                        inactive_core_tolerance:
-                    return kpar
+        return suitable_divisors[(np.abs(suitable_divisors - good_kpar_guess)).argmin()]
 
 
 @explicit_serialize
