@@ -155,17 +155,18 @@ class VaspParallelizationTask(FiretaskBase):
             raise NotImplementedError("This Firetask currently only supports PBS "
                                       "schedulers.")
 
-        with open("parallell", "w") as file:
+        kpar = self._find_kpar(number_of_kpoints, number_of_cores)
+
+        with open("parallel", "w") as file:
             file.write("Number of kpoints = " + str(number_of_kpoints) + "\n")
             file.write("Number of cores = " + str(number_of_cores) + "\n")
+            file.write("Kpar = " + str(kpar) + "\n")
 
-        self._set_incar_parallelization(number_of_kpoints, number_of_kpoints)
+        self._set_incar_parallelization(kpar)
 
-    def _set_incar_parallelization(self, number_of_kpoints, number_of_cores):
+    def _set_incar_parallelization(self, kpar):
 
         directory = self.get("directory")
-
-        kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
         incar.update({"KPAR": kpar})
