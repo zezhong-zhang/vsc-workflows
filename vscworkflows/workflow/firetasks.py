@@ -150,7 +150,7 @@ class VaspParallelizationTask(FiretaskBase):
 
         # Get the total number of cores
         try:
-            number_of_cores = os.environ["PBS_NP"]
+            number_of_cores = int(os.environ["PBS_NP"])
         except KeyError:
             raise NotImplementedError("This Firetask currently only supports PBS "
                                       "schedulers.")
@@ -158,7 +158,7 @@ class VaspParallelizationTask(FiretaskBase):
         kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
         with open("parallel", "w") as file:
-            file.write("Number of kpoints = " + str(number_of_kpoints) + "\n")
+            file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("Kpar = " + str(kpar) + "\n")
 
