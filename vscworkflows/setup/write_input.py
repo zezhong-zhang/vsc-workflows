@@ -36,7 +36,13 @@ def _load_yaml_config(filename):
 
 
 def _load_functional(functional):
-    pass
+    # Set up the functional
+    if functional[0] != "pbe":
+        functional_config = _load_yaml_config(functional[0] + "Set")
+        functional_config["INCAR"].update(functional[1])
+        return functional_config["INCAR"]
+    else:
+        return {}
 
 
 def _set_up_directory(directory, functional, calculation):
@@ -53,35 +59,7 @@ def _set_up_directory(directory, functional, calculation):
     return directory
 
 
-def _set_up_calculation(calculation_set, functional):
-    """
-    Set up a DictSet-based calculation set. This basically runs some checks and adjust
-    input settings where necessary.
-
-    Args:
-        calculation_set:
-
-    Returns:
-
-    """
-    # Check if a magnetic moment was provided for the sites. If so, perform a
-    # spin-polarized calculation
-    if "magmom" in calculation_set.structure.site_properties.keys():
-        calculation_set.user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
-
-    # Adjust the projector-evaluation scheme to Auto for large unit cells (+20 atoms)
-    if len(calculation_set.structure) > 20:
-        calculation_set.user_incar_settings.update({"LREAL": "Auto"})
-
-    # Set up the functional
-    if functional[0] != "pbe":
-        functional_config = _load_yaml_config(functional[0] + "Set")
-        functional_config["INCAR"].update(functional[1])
-        calculation_set.user_incar_settings.update(functional_config["INCAR"])
-
-    return calculation_set
-
-
+# TODO: Check this method
 def optimize(structure, directory="", functional=("pbe", {}),
              is_metal=False):
     """
@@ -122,16 +100,23 @@ def optimize(structure, directory="", functional=("pbe", {}),
     # Set up the calculation
     user_incar_settings = {}
 
+    # Set up the functional
+    user_incar_settings.update(_load_functional(functional))
+
+    # Check if a magnetic moment was provided for the sites. If so, perform a
+    # spin-polarized calculation
+    if "magmom" in structure.site_properties.keys():
+        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
+
     # For metals, use Methfessel Paxton smearing
     if is_metal:
         user_incar_settings.update({"ISMEAR": 2, "SIGMA": 0.2})
 
     # Set up the geometry optimization
-    geo_optimization = _set_up_calculation(
-        BulkRelaxSet(structure=structure, user_incar_settings=user_incar_settings,
-                     potcar_functional=DFT_FUNCTIONAL),
-        functional=functional
-    )
+    geo_optimization = BulkRelaxSet(structure=structure,
+                                    user_incar_settings=user_incar_settings,
+                                    potcar_functional=DFT_FUNCTIONAL)
+
     # Write the setup files to the geometry optimization directory
     geo_optimization.write_input(directory)
 
@@ -193,11 +178,10 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
         user_incar_settings.update({"ISMEAR": 0, "SIGMA": 0.3})
 
     # Set up the geometry optimization
-    calculation = _set_up_calculation(
-        BulkStaticSet(structure=structure, k_resolution=k_resolution,
-                      user_incar_settings=user_incar_settings,
-                      potcar_functional=DFT_FUNCTIONAL)
-    )
+    calculation = BulkStaticSet(structure=structure,
+                                k_resolution=k_resolution,
+                                user_incar_settings=user_incar_settings,
+                                potcar_functional=DFT_FUNCTIONAL)
 
     # Write the setup files to the geometry optimization directory
     calculation.write_input(directory)
