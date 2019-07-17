@@ -131,6 +131,8 @@ class OpticsFW(Firework):
                     "is_metal": is_metal}
         )
 
+        parallelisation_task = VaspParallelizationTask(directory=directory)
+
         # Create the PyTask that runs the calculation
         if in_custodian:
             vasprun = CustodianTask(directory=directory)
@@ -151,7 +153,7 @@ class OpticsFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_optics, vasprun, write_final_structure],
+            tasks=[setup_optics, parallelisation_task, vasprun, write_final_structure],
             name="Optics", spec=firework_spec
         )
 
