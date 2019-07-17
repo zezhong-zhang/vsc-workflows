@@ -162,9 +162,9 @@ class VaspParallelizationTask(FiretaskBase):
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("Kpar = " + str(kpar) + "\n")
 
-        self._set_incar_parallelization(kpar)
+        self._set_incar_parallellization(kpar)
 
-    def _set_incar_parallelization(self, kpar):
+    def _set_incar_parallellization(self, kpar):
 
         directory = self.get("directory")
 
