@@ -4,12 +4,15 @@
 
 import os
 import subprocess
+import time
 
 import numpy as np
 
 from quotas import QSlab
 
 from pymatgen import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.io.vasp.inputs import Incar, Kpoints
 from pymatgen.io.vasp.outputs import Vasprun
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, PyTask, \
     explicit_serialize
@@ -30,6 +33,26 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 
+def _find_irr_k_points(directory):
+    # TODO Fail for magnetic structures.
+    # It seems that the algorithm is not taking the magnetic moments into account
+    # properly. Fix this.
+
+    directory = os.path.abspath(directory)
+
+    structure = Structure.from_file(os.path.join(directory, "POSCAR"))
+
+    incar = Incar.from_file(os.path.join(directory, "INCAR"))
+    if incar.get("MAGMOM", None) is not None:
+        structure.add_site_property(("magmom"), incar.get("MAGMOM", None))
+
+    kpoints = Kpoints.from_file(os.path.join(directory, "KPOINTS"))
+
+    spg = SpacegroupAnalyzer(structure, symprec=1e-5)
+
+    return len(spg.get_ir_reciprocal_mesh(kpoints.kpts))
+
+
 @explicit_serialize
 class VaspTask(FiretaskBase):
     """
@@ -47,9 +70,6 @@ class VaspTask(FiretaskBase):
         stdout_file = self.get("stdout_file", os.path.join(self["directory"], "out"))
         stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
-
-        with open(os.path.join(self["directory"], "nodes_info"), "w") as file:
-            file.write(str(os.cpu_count()))
 
         with open(stdout_file, 'w') as f_std, \
                 open(stderr_file, "w", buffering=1) as f_err:
@@ -90,6 +110,51 @@ class CustodianTask(FiretaskBase):
 
 
 @explicit_serialize
+class VaspParallelizationTask(FiretaskBase):
+    """
+    Set up the parallelization setting for a VASP calculation. As I do not seems to be
+    able to properly figure out the number of irreducible kpoints that VASP uses based
+    on the input files, this Firetask runs the VASP calculation until the IBZKPT file
+    is created, and then reads the number of irreducible kpoints from this file.
+
+    """
+
+    required_params = ["directory"]
+    optional_params = ["NPAR", "KPAR", "NCORE"]
+
+    def run_task(self, fw_spec):
+
+        os.chdir(self["directory"])
+        stdout_file = self.get("stdout_file", os.path.join(self["directory"], "out"))
+        stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
+        vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
+
+        # Get the number of k-points
+        with open(stdout_file, 'w') as f_std, \
+                open(stderr_file, "w", buffering=1) as f_err:
+            p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err)
+
+            while not os.path.exists(os.path.join(self["directory"], "IBZKPT")):
+                time.sleep(10)
+
+            p.kill()
+
+            with open(os.path.join(self["directory"], "IBZKPT"), "r") as file:
+                number_of_kpoints =  int(file.read().split('\n')[1])
+
+        # Get the total number of cores
+        try:
+            number_of_cores = os.environ["PBS_NP"]
+        except KeyError:
+            raise NotImplementedError("This Firetask currently only supports PBS "
+                                      "schedulers.")
+
+        with open("parallell", "w") as file:
+            file.write("Number of kpoints = " + str(number_of_kpoints) + "\n")
+            file.write("Number of cores = " + str(number_of_cores) + "\n")
+
+
+@explicit_serialize
 class VaspWriteFinalStructureTask(FiretaskBase):
     """
     Obtain the final structure from a calculation and write it to a json file.
@@ -119,7 +184,6 @@ class VaspWriteFinalSlabTask(FiretaskBase):
     optional_params = []
 
     def run_task(self, fw_spec):
-
         directory = self.get("directory")
 
         initial_slab = QSlab.from_file(os.path.join(directory, "initial_slab.json"))

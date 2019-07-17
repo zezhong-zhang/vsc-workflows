@@ -7,7 +7,8 @@ import os
 from fireworks import PyTask, Firework
 
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
-    VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, PulayTask
+    VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
+    PulayTask
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -194,6 +195,8 @@ class SlabOptimizeFW(Firework):
                     "is_metal": is_metal}
         )
 
+        parallelisation_task = VaspParallelizationTask(directory=directory)
+
         # Create the PyTask that runs the calculation
         if in_custodian:
             vasprun = CustodianTask(directory=directory)
@@ -214,7 +217,7 @@ class SlabOptimizeFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_optimize, vasprun, write_final_slab],
+            tasks=[setup_optimize, parallelisation_task, vasprun, write_final_slab],
             name="Geometry optimization", spec=firework_spec
         )
 
