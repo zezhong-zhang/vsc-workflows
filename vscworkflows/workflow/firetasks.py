@@ -124,9 +124,11 @@ class VaspParallelizationTask(FiretaskBase):
 
     def run_task(self, fw_spec):
 
-        os.chdir(self["directory"])
-        stdout_file = self.get("stdout_file", os.path.join(self["directory"], "out"))
-        stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
+        directory = self.get("directory")
+
+        os.chdir(directory)
+        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
+        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         # Get the number of k-points
@@ -134,16 +136,16 @@ class VaspParallelizationTask(FiretaskBase):
                 open(stderr_file, "w", buffering=1) as f_err:
             p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err)
 
-        while not os.path.exists(os.path.join(self["directory"], "IBZKPT")):
+        while not os.path.exists(os.path.join(directory, "IBZKPT")):
             time.sleep(10)
 
-        with open(os.path.join(self["directory"], "IBZKPT"), "r") as file:
+        with open(os.path.join(directory, "IBZKPT"), "r") as file:
             number_of_kpoints = int(file.read().split('\n')[1])
 
-        with open(os.path.join(self["directory"], "STOPCAR"), "w") as file:
+        with open(os.path.join(directory, "STOPCAR"), "w") as file:
             file.write("LABORT=True")
 
-        while os.path.exists(os.path.join(self["directory"], "STOPCAR")):
+        while os.path.exists(os.path.join(directory, "STOPCAR")):
             time.sleep(10)
 
         # Get the total number of cores
@@ -156,6 +158,30 @@ class VaspParallelizationTask(FiretaskBase):
         with open("parallell", "w") as file:
             file.write("Number of kpoints = " + str(number_of_kpoints) + "\n")
             file.write("Number of cores = " + str(number_of_cores) + "\n")
+
+    def _set_incar_parallelization(self, number_of_kpoints, number_of_cores):
+
+        directory = self.get("directory")
+
+        kpar = self._find_kpar(number_of_kpoints, number_of_cores)
+
+        incar = Incar.from_file(os.path.join(directory, "INCAR"))
+        incar.update({"KPAR": kpar})
+        incar.write_file(os.path.join(directory, "INCAR"))
+
+    @staticmethod
+    def _find_kpar(n_kpoints, n_cores, inactive_core_tolerance=8):
+
+        for kpar in list(range(n_cores, 0, -1)):
+
+            if n_cores % kpar == 0:
+
+                cores_per_kpoint = n_cores / kpar
+                leftover_kpoints = n_kpoints % kpar
+
+                if (n_cores - leftover_kpoints * cores_per_kpoint) % n_cores <= \
+                        inactive_core_tolerance:
+                    return kpar
 
 
 @explicit_serialize
