@@ -159,7 +159,7 @@ class VaspParallelizationTask(FiretaskBase):
             file.write("Number of kpoints = " + str(number_of_kpoints) + "\n")
             file.write("Number of cores = " + str(number_of_cores) + "\n")
 
-        self._set_incar_parallelization(number_of_kpoints, number_of_kpointsu)
+        self._set_incar_parallelization(number_of_kpoints, number_of_kpoints)
 
     def _set_incar_parallelization(self, number_of_kpoints, number_of_cores):
 
