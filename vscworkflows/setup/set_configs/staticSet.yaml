@@ -8,7 +8,6 @@ INCAR:
   LASPH: true
   LCHARG: false
   LORBIT: 11
-  LREAL: Auto
   LWAVE: false
   NELM: 200
   NELMIN: 8

@@ -10,7 +10,6 @@ INCAR:
   ISPIN: 1
   LASPH: true
   LCHARG: false
-  LREAL: AUTO
   LWAVE: false
   NELM: 100
   NELMIN: 5
