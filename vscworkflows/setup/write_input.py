@@ -24,8 +24,7 @@ __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jul 2019"
 
-MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          "../../set_configs")
+MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "set_configs")
 
 DFT_FUNCTIONAL = "PBE_54"
 
@@ -33,10 +32,6 @@ DFT_FUNCTIONAL = "PBE_54"
 def _load_yaml_config(filename):
     config = loadfn(os.path.join(MODULE_DIR, "%s.yaml" % filename))
     return config
-
-
-def _load_functional(functional):
-    pass
 
 
 def _set_up_directory(directory, functional, calculation):
@@ -119,7 +114,7 @@ def optimize(structure, directory="", functional=("pbe", {}),
     # Store the full Structure as a json file
     structure.to("json", os.path.join(directory, "initial_structure.json"))
 
-    # Set up the calculation
+    # Set the defaults for the calculation
     user_incar_settings = {}
 
     # For metals, use Methfessel Paxton smearing
@@ -127,13 +122,13 @@ def optimize(structure, directory="", functional=("pbe", {}),
         user_incar_settings.update({"ISMEAR": 2, "SIGMA": 0.2})
 
     # Set up the geometry optimization
-    geo_optimization = _set_up_calculation(
+    calculation = _set_up_calculation(
         BulkRelaxSet(structure=structure, user_incar_settings=user_incar_settings,
                      potcar_functional=DFT_FUNCTIONAL),
         functional=functional
     )
     # Write the setup files to the geometry optimization directory
-    geo_optimization.write_input(directory)
+    calculation.write_input(directory)
 
     return directory
 
@@ -177,16 +172,8 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
     # Store the full Structure as a json file
     structure.to("json", os.path.join(directory, "initial_structure.json"))
 
-    # Set up the defaults for the optics calculation
+    # Set the defaults for the calculation
     user_incar_settings = {"LOPTICS": True, "EDIFF": 1.0e-6}
-
-    # Set up the functional
-    user_incar_settings.update(_load_functional(functional))
-
-    # Check if a magnetic moment was provided for the sites. If so, perform a
-    # spin-polarized calculation
-    if "magmom" in structure.site_properties.keys():
-        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
 
     # For metals, use a good amount of Gaussian smearing
     if is_metal:
@@ -196,7 +183,8 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
     calculation = _set_up_calculation(
         BulkStaticSet(structure=structure, k_resolution=k_resolution,
                       user_incar_settings=user_incar_settings,
-                      potcar_functional=DFT_FUNCTIONAL)
+                      potcar_functional=DFT_FUNCTIONAL),
+        functional=functional
     )
 
     # Write the setup files to the geometry optimization directory
@@ -246,25 +234,19 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
     # Store the full QSlab object
     slab.to("json", os.path.join(directory, "initial_slab.json"))
 
+    # Set the defaults for the calculation
     user_incar_settings = {}
-
-    # Set up the functional
-    user_incar_settings.update(_load_functional(functional))
-
-    # Check if a magnetic moment was provided for the sites. If so, perform a
-    # spin-polarized calculation
-    if "magmom" in slab.site_properties.keys():
-        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
-
-        slab.add_site_property("magmom", [0] * len(slab.sites))
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
         user_incar_settings.update({"ISMEAR": 2, "SIGMA": 0.2})
 
-    calculation = SlabRelaxSet(structure=slab,
-                               user_incar_settings=user_incar_settings,
-                               potcar_functional=DFT_FUNCTIONAL)
+    calculation = _set_up_calculation(
+        SlabRelaxSet(structure=slab,
+                     user_incar_settings=user_incar_settings,
+                     potcar_functional=DFT_FUNCTIONAL),
+        functional=functional
+    )
 
     calculation.fix_slab_bulk(thickness=fix_thickness,
                               part=fix_part)
@@ -312,27 +294,19 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
     # Store the full QSlab object
     slab.to("json", os.path.join(directory, "initial_slab.json"))
 
-    # Start by setting some standard settings for the calculation
+    # Set the defaults for the calculation
     user_incar_settings = {"NEDOS": 2000}
-
-    # Set up the functional
-    user_incar_settings.update(_load_functional(functional))
-
-    # Check if a magnetic moment was provided for the sites. If so, perform a
-    # spin-polarized calculation
-    if "magmom" in slab.site_properties.keys():
-        user_incar_settings.update({"ISPIN": 2, "MAGMOM": True})
-
-        slab.add_site_property("magmom", [0] * len(slab.sites))
 
     # Calculate the local potential if requested (e.g. for the work function)
     if calculate_locpot:
         user_incar_settings.update({"LVTOT": True, "LVHAR": True})
 
-    calculation = SlabStaticSet(structure=slab,
-                                k_resolution=k_resolution,
-                                user_incar_settings=user_incar_settings,
-                                potcar_functional=DFT_FUNCTIONAL)
+    calculation = _set_up_calculation(
+        SlabStaticSet(structure=slab, k_resolution=k_resolution,
+                      user_incar_settings=user_incar_settings,
+                      potcar_functional=DFT_FUNCTIONAL),
+        functional=functional
+    )
 
     # Set the number of bands for the calculation
     if "magmom" in slab.site_properties.keys():
