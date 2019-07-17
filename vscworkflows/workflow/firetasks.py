@@ -49,7 +49,7 @@ class VaspTask(FiretaskBase):
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         with open(os.path.join(self["directory"], "nodes_info"), "w") as file:
-            file.write(os.cpu_count())
+            file.write(str(os.cpu_count()))
 
         with open(stdout_file, 'w') as f_std, \
                 open(stderr_file, "w", buffering=1) as f_err:
