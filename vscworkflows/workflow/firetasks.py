@@ -137,7 +137,7 @@ class VaspParallelizationTask(FiretaskBase):
             while not os.path.exists(os.path.join(self["directory"], "IBZKPT")):
                 time.sleep(10)
 
-            p.kill()
+            p.terminate()
 
             with open(os.path.join(self["directory"], "IBZKPT"), "r") as file:
                 number_of_kpoints =  int(file.read().split('\n')[1])
