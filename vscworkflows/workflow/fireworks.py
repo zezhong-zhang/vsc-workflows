@@ -256,30 +256,38 @@ class SlabDosFW(Firework):
             it is picked up by the right Fireworker.
 
         """
+        tasks = list()
+
         # Set up the DOS calculation, based on the structure found from the
         # geometry optimization.
-        setup_dos = PyTask(func="vscworkflows.setup.write_input.slab_dos",
-                           kwargs={
-                               "slab": slab,
-                               "directory": directory,
-                               "functional": functional,
-                               "k_resolution": k_resolution,
-                               "calculate_locpot": calculate_locpot
-                           })
+        tasks.append(
+            PyTask(func="vscworkflows.setup.write_input.slab_dos",
+                   kwargs={
+                       "slab": slab,
+                       "directory": directory,
+                       "functional": functional,
+                       "k_resolution": k_resolution,
+                       "calculate_locpot": calculate_locpot
+                   })
+        )
 
-        parallelisation_task = VaspParallelizationTask(directory=directory,
-                                                       KPAR=number_nodes)
+        for i in range(2, number_nodes):
+            if number_nodes % i:
+                tasks.append(
+                    VaspParallelizationTask(
+                        directory=directory, KPAR=number_nodes
+                    )
+                )
+                break
 
         # Create the PyTask that runs the calculation
         if in_custodian:
-            vasprun = CustodianTask(directory=directory)
+            tasks.append(CustodianTask(directory=directory))
         else:
-            vasprun = VaspTask(directory=directory)
+            tasks.append(VaspTask(directory=directory))
 
         # Write the final slab to a json file for subsequent calculations
-        write_final_slab = VaspWriteFinalSlabTask(
-            directory=directory
-        )
+        tasks.append(VaspWriteFinalSlabTask(directory=directory))
 
         # Only add number of nodes to spec if specified
         firework_spec = {}
@@ -288,8 +296,4 @@ class SlabDosFW(Firework):
         else:
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
-        # Combine the FireTasks into one FireWork
-        super().__init__(
-            tasks=[setup_dos, parallelisation_task, vasprun, write_final_slab],
-            name="DOS Calculation", spec=firework_spec
-        )
+        super().__init__(tasks=tasks, name="DOS Calculation", spec=firework_spec)
