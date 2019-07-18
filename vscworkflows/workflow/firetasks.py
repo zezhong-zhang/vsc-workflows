@@ -4,6 +4,7 @@
 
 import os
 import subprocess
+import signal
 import time
 
 import numpy as np
@@ -134,19 +135,22 @@ class VaspParallelizationTask(FiretaskBase):
         # Get the number of k-points
         with open(stdout_file, 'w') as f_std, \
                 open(stderr_file, "w", buffering=1) as f_err:
-            p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err)
+            p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
+                                 preexec_fn=os.setsid)
 
-        while not os.path.exists(os.path.join(directory, "IBZKPT")):
-            time.sleep(1)
+            while not os.path.exists(os.path.join(directory, "IBZKPT")):
+                time.sleep(1)
+
+            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
         with open(os.path.join(directory, "IBZKPT"), "r") as file:
             number_of_kpoints = int(file.read().split('\n')[1])
 
-        with open(os.path.join(directory, "STOPCAR"), "w") as file:
-            file.write("LABORT=True")
-
-        while os.path.exists(os.path.join(directory, "STOPCAR")):
-            time.sleep(1)
+        # with open(os.path.join(directory, "STOPCAR"), "w") as file:
+        #     file.write("LABORT=True")
+        #
+        # while os.path.exists(os.path.join(directory, "STOPCAR")):
+        #     time.sleep(1)
 
         # Get the total number of cores
         try:
@@ -157,7 +161,7 @@ class VaspParallelizationTask(FiretaskBase):
 
         kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
-        with open("parallel", "w") as file:
+        with open(os.path.join("parallel"), "w") as file:
             file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("Kpar = " + str(kpar) + "\n")
