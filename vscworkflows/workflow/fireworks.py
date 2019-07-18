@@ -268,7 +268,7 @@ class SlabDosFW(Firework):
                            })
 
         parallelisation_task = VaspParallelizationTask(directory=directory,
-                                                       kpar=number_nodes)
+                                                       KPAR=number_nodes)
 
         # Create the PyTask that runs the calculation
         if in_custodian:
