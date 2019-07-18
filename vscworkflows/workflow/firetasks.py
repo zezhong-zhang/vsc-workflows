@@ -137,7 +137,7 @@ class VaspParallelizationTask(FiretaskBase):
             p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err)
 
         while not os.path.exists(os.path.join(directory, "IBZKPT")):
-            time.sleep(10)
+            time.sleep(1)
 
         with open(os.path.join(directory, "IBZKPT"), "r") as file:
             number_of_kpoints = int(file.read().split('\n')[1])
@@ -146,7 +146,7 @@ class VaspParallelizationTask(FiretaskBase):
             file.write("LABORT=True")
 
         while os.path.exists(os.path.join(directory, "STOPCAR")):
-            time.sleep(10)
+            time.sleep(1)
 
         # Get the total number of cores
         try:
