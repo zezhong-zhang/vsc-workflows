@@ -297,4 +297,6 @@ class SlabDosFW(Firework):
         else:
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
-        super().__init__(tasks=tasks, name="DOS Calculation", spec=firework_spec)
+        super().__init__(tasks=tasks,
+                         name=str(slab.miller_index) + " DOS Calculation",
+                         spec=firework_spec)
