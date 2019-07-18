@@ -267,7 +267,7 @@ class SlabDosFW(Firework):
                                "calculate_locpot": calculate_locpot
                            })
 
-        parallelisation_task = VaspParallelizationTask(directory=directory)
+        #parallelisation_task = VaspParallelizationTask(directory=directory)
 
         # Create the PyTask that runs the calculation
         if in_custodian:
@@ -289,6 +289,6 @@ class SlabDosFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(
-            tasks=[setup_dos, parallelisation_task, vasprun, write_final_slab],
+            tasks=[setup_dos, vasprun, write_final_slab],
             name="DOS Calculation", spec=firework_spec
         )

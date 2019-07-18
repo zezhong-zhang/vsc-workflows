@@ -146,12 +146,6 @@ class VaspParallelizationTask(FiretaskBase):
         with open(os.path.join(directory, "IBZKPT"), "r") as file:
             number_of_kpoints = int(file.read().split('\n')[1])
 
-        # with open(os.path.join(directory, "STOPCAR"), "w") as file:
-        #     file.write("LABORT=True")
-        #
-        # while os.path.exists(os.path.join(directory, "STOPCAR")):
-        #     time.sleep(1)
-
         # Get the total number of cores
         try:
             number_of_cores = int(os.environ["PBS_NP"])
