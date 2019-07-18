@@ -121,46 +121,49 @@ class VaspParallelizationTask(FiretaskBase):
     """
 
     required_params = ["directory"]
-    optional_params = ["NPAR", "KPAR", "NCORE"]
+    optional_params = ["KPAR"]
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory")
 
-        os.chdir(directory)
-        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
-        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
-        vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
+        if self.get("KPAR", None) is not None:
+            self._set_incar_parallellization(self.get("KPAR"))
+        else:
+            os.chdir(directory)
+            stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
+            stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
+            vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
-        # Get the number of k-points
-        with open(stdout_file, 'w') as f_std, \
-                open(stderr_file, "w", buffering=1) as f_err:
-            p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
-                                 preexec_fn=os.setsid)
+            # Get the number of k-points
+            with open(stdout_file, 'w') as f_std, \
+                    open(stderr_file, "w", buffering=1) as f_err:
+                p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
+                                     preexec_fn=os.setsid)
 
-            while not os.path.exists(os.path.join(directory, "IBZKPT")):
-                time.sleep(1)
+                while not os.path.exists(os.path.join(directory, "IBZKPT")):
+                    time.sleep(1)
 
-            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+                os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
-        with open(os.path.join(directory, "IBZKPT"), "r") as file:
-            number_of_kpoints = int(file.read().split('\n')[1])
+            with open(os.path.join(directory, "IBZKPT"), "r") as file:
+                number_of_kpoints = int(file.read().split('\n')[1])
 
-        # Get the total number of cores
-        try:
-            number_of_cores = int(os.environ["PBS_NP"])
-        except KeyError:
-            raise NotImplementedError("This Firetask currently only supports PBS "
-                                      "schedulers.")
+            # Get the total number of cores
+            try:
+                number_of_cores = int(os.environ["PBS_NP"])
+            except KeyError:
+                raise NotImplementedError("This Firetask currently only supports PBS "
+                                          "schedulers.")
 
-        kpar = self._find_kpar(number_of_kpoints, number_of_cores)
+            kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
-        with open(os.path.join("parallel"), "w") as file:
-            file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
-            file.write("Number of cores = " + str(number_of_cores) + "\n")
-            file.write("Kpar = " + str(kpar) + "\n")
+            with open(os.path.join("parallel"), "w") as file:
+                file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
+                file.write("Number of cores = " + str(number_of_cores) + "\n")
+                file.write("Kpar = " + str(kpar) + "\n")
 
-        self._set_incar_parallellization(kpar)
+            self._set_incar_parallellization(kpar)
 
     def _set_incar_parallellization(self, kpar):
 
