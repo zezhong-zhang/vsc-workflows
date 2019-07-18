@@ -126,10 +126,10 @@ class VaspParallelizationTask(FiretaskBase):
     def run_task(self, fw_spec):
 
         directory = self.get("directory")
+        kpar = self.get("KPAR", None)
 
-        if self.get("KPAR", None) is not None:
-            self._set_incar_parallellization(self.get("KPAR"))
-        else:
+        if self.get("KPAR", None) is None:
+
             os.chdir(directory)
             stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
             stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
@@ -163,7 +163,7 @@ class VaspParallelizationTask(FiretaskBase):
                 file.write("Number of cores = " + str(number_of_cores) + "\n")
                 file.write("Kpar = " + str(kpar) + "\n")
 
-            self._set_incar_parallellization(kpar)
+        self._set_incar_parallellization(kpar)
 
     def _set_incar_parallellization(self, kpar):
 
