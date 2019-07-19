@@ -266,8 +266,9 @@ class SlabDosFW(Firework):
                        "slab": slab,
                        "directory": directory,
                        "functional": functional,
-                       "k_resolution": k_resolution,
-                       "calculate_locpot": calculate_locpot
+                       "k_resolution": k_resolution * 3,
+                       "calculate_locpot": False,
+                       "user_incar_settings": {"LCHARG": True}
                    })
         )
 
@@ -287,6 +288,23 @@ class SlabDosFW(Firework):
         else:
             tasks.append(VaspTask(directory=directory))
 
+        tasks.append(
+            PyTask(func="vscworkflows.setup.write_input.slab_dos",
+                   kwargs={
+                       "slab": slab,
+                       "directory": directory,
+                       "functional": functional,
+                       "k_resolution": k_resolution,
+                       "calculate_locpot": calculate_locpot,
+                       "user_incar_settings": {"ICHARG": 1}
+                   })
+        )
+        # Create the PyTask that runs the calculation
+        if in_custodian:
+            tasks.append(CustodianTask(directory=directory))
+        else:
+            tasks.append(VaspTask(directory=directory))
+
         # Write the final slab to a json file for subsequent calculations
         tasks.append(VaspWriteFinalSlabTask(directory=directory))
 
@@ -298,5 +316,5 @@ class SlabDosFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         super().__init__(tasks=tasks,
-                         name=str(slab.miller_index) + " DOS Calculation",
+                         name="DOS Calculation",
                          spec=firework_spec)

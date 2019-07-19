@@ -258,7 +258,7 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
 
 
 def slab_dos(slab, directory="", functional=("pbe", {}),
-             k_resolution=0.1, calculate_locpot=False):
+             k_resolution=0.1, calculate_locpot=False, user_incar_settings=None):
     """
     Set up the DOS / work function calculation.
 
@@ -276,10 +276,14 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
             calculation we always only consider one point in the c-direction.
         calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
             determine the work function.
+        user_incar_settings (dict): #TODO
+
 
     Returns:
 
     """
+    user_incar_settings = user_incar_settings or {}
+
     # Set up the calculation directory
     directory = _set_up_directory(directory, functional, "dos")
     try:
@@ -295,7 +299,7 @@ def slab_dos(slab, directory="", functional=("pbe", {}),
     slab.to("json", os.path.join(directory, "initial_slab.json"))
 
     # Set the defaults for the calculation
-    user_incar_settings = {"NEDOS": 2000}
+    user_incar_settings.update({"NEDOS": 2000})
 
     # Calculate the local potential if requested (e.g. for the work function)
     if calculate_locpot:
