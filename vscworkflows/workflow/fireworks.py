@@ -50,35 +50,38 @@ class OptimizeFW(Firework):
                 PulayTask is completed.
 
         """
-        # Create the PyTask that sets up the calculation
-        setup_optimize = PyTask(
-            func="vscworkflows.setup.write_input.optimize",
-            kwargs={"structure": structure,
-                    "directory": directory,
-                    "functional": functional,
-                    "is_metal": is_metal}
+        tasks = list()
+
+        # Set up the input files of the calculation
+        tasks.append(
+            PyTask(func="vscworkflows.setup.write_input.optimize",
+                   kwargs={"structure": structure,
+                           "directory": directory,
+                           "functional": functional,
+                           "is_metal": is_metal})
         )
 
-        parallelisation_task = VaspParallelizationTask(directory=directory)
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask(directory=directory))
 
-        # Create the PyTask that runs the calculation
+        # Run the calculation
         if in_custodian:
-            vasprun = CustodianTask(directory=directory)
+            tasks.append(CustodianTask(directory=directory))
         else:
-            vasprun = VaspTask(directory=directory)
+            tasks.append(VaspTask(directory=directory))
 
         # Write the final structure to a json file for subsequent calculations
-        write_final_structure = VaspWriteFinalStructureTask(
-            directory=directory
+        tasks.append(VaspWriteFinalStructureTask(directory=directory))
+
+        # Check the Pulay stress
+        tasks.append(
+            PulayTask(directory=directory,
+                      in_custodian=in_custodian,
+                      number_nodes=number_nodes,
+                      fw_action=fw_action)
         )
 
-        # Create the PyTask that check the Pulay stresses
-        pulay_task = PulayTask(directory=directory,
-                               in_custodian=in_custodian,
-                               number_nodes=number_nodes,
-                               fw_action=fw_action)
-
-        # Only add number of nodes to spec if specified
+        # Add number of nodes to spec if specified
         firework_spec = {}
         if number_nodes is None or number_nodes == 0:
             firework_spec.update({"_category": "none"})
@@ -86,11 +89,9 @@ class OptimizeFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super().__init__(
-            tasks=[setup_optimize, parallelisation_task, vasprun, write_final_structure,
-                   pulay_task],
-            name="Geometry optimization", spec=firework_spec
-        )
+        super().__init__(tasks=tasks,
+                         name="Geometry optimization",
+                         spec=firework_spec)
 
 
 class OpticsFW(Firework):
@@ -121,30 +122,31 @@ class OpticsFW(Firework):
                 it is picked up by the right Fireworker.
 
         """
-        # Create the PyTask that sets up the calculation
-        setup_optics = PyTask(
-            func="vscworkflows.setup.write_input.optics",
-            kwargs={"structure": structure,
-                    "directory": directory,
-                    "functional": functional,
-                    "k_resolution": k_resolution,
-                    "is_metal": is_metal}
+        tasks = list()
+
+        # Set up the input files of the calculation
+        tasks.append(
+            PyTask(func="vscworkflows.setup.write_input.optics",
+                   kwargs={"structure": structure,
+                           "directory": directory,
+                           "functional": functional,
+                           "k_resolution": k_resolution,
+                           "is_metal": is_metal})
         )
 
-        parallelisation_task = VaspParallelizationTask(directory=directory)
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask(directory=directory))
 
-        # Create the PyTask that runs the calculation
+        # Run the calculation
         if in_custodian:
-            vasprun = CustodianTask(directory=directory)
+            tasks.append(CustodianTask(directory=directory))
         else:
-            vasprun = VaspTask(directory=directory)
+            tasks.append(VaspTask(directory=directory))
 
         # Write the final structure to a json file for subsequent calculations
-        write_final_structure = VaspWriteFinalStructureTask(
-            directory=directory
-        )
+        tasks.append(VaspWriteFinalStructureTask(directory=directory))
 
-        # Only add number of nodes to spec if specified
+        # Add number of nodes to spec if specified
         firework_spec = {}
         if number_nodes is None or number_nodes == 0:
             firework_spec.update({"_category": "none"})
@@ -152,10 +154,9 @@ class OpticsFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super().__init__(
-            tasks=[setup_optics, parallelisation_task, vasprun, write_final_structure],
-            name="Optics", spec=firework_spec
-        )
+        super().__init__(tasks=tasks,
+                         name="Optics",
+                         spec=firework_spec)
 
 
 class SlabOptimizeFW(Firework):
@@ -189,29 +190,30 @@ class SlabOptimizeFW(Firework):
                 it is picked up by the right Fireworker.
 
         """
-        # Create the PyTask that sets up the calculation
-        setup_optimize = PyTask(
-            func="vscworkflows.setup.write_input.slab_optimize",
-            kwargs={"slab": slab,
-                    "fix_part": fix_part,
-                    "fix_thickness": fix_thickness,
-                    "directory": directory,
-                    "functional": functional,
-                    "is_metal": is_metal}
+        tasks = list()
+
+        # Set up the input files of the calculation
+        tasks.append(
+            PyTask(func="vscworkflows.setup.write_input.slab_optimize",
+                   kwargs={"slab": slab,
+                           "fix_part": fix_part,
+                           "fix_thickness": fix_thickness,
+                           "directory": directory,
+                           "functional": functional,
+                           "is_metal": is_metal})
         )
 
-        parallelisation_task = VaspParallelizationTask(directory=directory)
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask(directory=directory))
 
-        # Create the PyTask that runs the calculation
+        # Run the calculation
         if in_custodian:
-            vasprun = CustodianTask(directory=directory)
+            tasks.append(CustodianTask(directory=directory))
         else:
-            vasprun = VaspTask(directory=directory)
+            tasks.append(VaspTask(directory=directory))
 
         # Write the final slab to a json file for subsequent calculations
-        write_final_slab = VaspWriteFinalSlabTask(
-            directory=directory
-        )
+        tasks.append(VaspWriteFinalSlabTask(directory=directory))
 
         # Only add number of nodes to spec if specified
         firework_spec = {}
@@ -221,10 +223,9 @@ class SlabOptimizeFW(Firework):
             firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
-        super().__init__(
-            tasks=[setup_optimize, parallelisation_task, vasprun, write_final_slab],
-            name="Geometry optimization", spec=firework_spec
-        )
+        super().__init__(tasks=tasks,
+                         name="Geometry optimization",
+                         spec=firework_spec)
 
 
 class SlabDosFW(Firework):
