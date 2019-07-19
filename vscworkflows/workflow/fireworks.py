@@ -268,19 +268,9 @@ class SlabDosFW(Firework):
                        "functional": functional,
                        "k_resolution": k_resolution * 3,
                        "calculate_locpot": False,
-                       "user_incar_settings": {"LCHARG": True}
+                       "user_incar_settings": {"LCHARG": True, "EDIFF": 1e-3}
                    })
         )
-
-        # if number_nodes is not None:
-        #     for i in range(2, number_nodes):
-        #         if number_nodes % i:
-        #             tasks.append(
-        #                 VaspParallelizationTask(
-        #                     directory=directory, KPAR=number_nodes/i
-        #                 )
-        #             )
-        #             break
 
         # Create the PyTask that runs the calculation
         if in_custodian:
