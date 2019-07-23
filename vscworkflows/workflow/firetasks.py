@@ -68,12 +68,13 @@ class VaspTask(FiretaskBase):
     def run_task(self, fw_spec):
         if self.get("directory", None) is not None:
             os.chdir(self["directory"])
-            directory = os.getcwd()
-        else:
             directory = self["directory"]
+        else:
+            directory = os.getcwd()
 
         stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
         stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
+
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         with open(stdout_file, 'w') as f_std, \
