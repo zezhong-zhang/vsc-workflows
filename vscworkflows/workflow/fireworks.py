@@ -6,9 +6,12 @@ import os
 
 from fireworks import PyTask, Firework
 
+from atomate.vasp.firetasks import WriteVaspFromIOSet
+
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
     VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
     PulayTask
+from vscworkflows.setup.sets import BulkRelaxSet
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -25,8 +28,8 @@ __date__ = "Jun 2019"
 
 class OptimizeFW(Firework):
 
-    def __init__(self, structure, directory, functional, is_metal=False,
-                 in_custodian=False, number_nodes=None, fw_action=None):
+    def __init__(self, structure, vasp_input_set_params=None,
+                 in_custodian=False, number_nodes=None, fw_action=None, spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -52,37 +55,34 @@ class OptimizeFW(Firework):
         """
         tasks = list()
 
-        # Set up the input files of the calculation
-        tasks.append(
-            PyTask(func="vscworkflows.setup.write_input.optimize",
-                   kwargs={"structure": structure,
-                           "directory": directory,
-                           "functional": functional,
-                           "is_metal": is_metal})
-        )
+        vasp_input_set_params = vasp_input_set_params or {}
+
+        tasks.append(WriteVaspFromIOSet(
+            structure=structure,
+            vasp_input_set=BulkRelaxSet(structure, **vasp_input_set_params)
+        ))
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask(directory=directory))
+        tasks.append(VaspParallelizationTask())
 
         # Run the calculation
         if in_custodian:
-            tasks.append(CustodianTask(directory=directory))
+            tasks.append(CustodianTask())
         else:
-            tasks.append(VaspTask(directory=directory))
+            tasks.append(VaspTask())
 
         # Write the final structure to a json file for subsequent calculations
-        tasks.append(VaspWriteFinalStructureTask(directory=directory))
+        # tasks.append(VaspWriteFinalStructureTask())
 
         # Check the Pulay stress
         tasks.append(
-            PulayTask(directory=directory,
-                      in_custodian=in_custodian,
+            PulayTask(in_custodian=in_custodian,
                       number_nodes=number_nodes,
                       fw_action=fw_action)
         )
 
         # Add number of nodes to spec if specified
-        firework_spec = {}
+        firework_spec = spec if spec is None else {}
         if number_nodes is None or number_nodes == 0:
             firework_spec.update({"_category": "none"})
         else:

@@ -63,13 +63,17 @@ class VaspTask(FiretaskBase):
         directory (str): Directory in which the VASP calculation should be run.
 
     """
-    required_params = ["directory"]
-    optional_params = ["stdout_file", "stderr_file"]
+    optional_params = ["directory", "stdout_file", "stderr_file"]
 
     def run_task(self, fw_spec):
-        os.chdir(self["directory"])
-        stdout_file = self.get("stdout_file", os.path.join(self["directory"], "out"))
-        stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
+        if self.get("directory", None) is not None:
+            os.chdir(self["directory"])
+            directory = os.getcwd()
+        else:
+            directory = self["directory"]
+
+        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
+        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         with open(stdout_file, 'w') as f_std, \
@@ -87,15 +91,18 @@ class CustodianTask(FiretaskBase):
         directory (str): Directory in which the VASP calculation should be run.
 
     """
-    required_params = ["directory"]
-    optional_params = ["stdout_file", "stderr_file"]
+    optional_params = ["directory", "stdout_file", "stderr_file"]
 
     def run_task(self, fw_spec):
-        directory = os.path.abspath(self["directory"])
-        os.chdir(directory)
 
-        stdout_file = self.get("stdout_file", os.path.join(self["directory"], "out"))
-        stderr_file = self.get("stderr_file", os.path.join(self["directory"], "out"))
+        if self.get("directory", None) is not None:
+            os.chdir(self["directory"])
+            directory = os.getcwd()
+        else:
+            directory = self["directory"]
+
+        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
+        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         handlers = [VaspErrorHandler(output_filename=stdout_file),
@@ -120,12 +127,11 @@ class VaspParallelizationTask(FiretaskBase):
 
     """
 
-    required_params = ["directory"]
-    optional_params = ["KPAR"]
+    optional_params = ["directory", "KPAR"]
 
     def run_task(self, fw_spec):
 
-        directory = self.get("directory")
+        directory = self.get("directory", os.getcwd())
         kpar = self.get("KPAR", None)
 
         if self.get("KPAR", None) is None:
@@ -258,8 +264,8 @@ class PulayTask(FiretaskBase):
             is performed starting from the final geometry.
 
     """
-    required_params = ["directory"]
-    option_params = ["in_custodian", "number_nodes", "tolerance", "fw_action"]
+    option_params = ["directory", "in_custodian", "number_nodes", "tolerance",
+                     "fw_action"]
 
     # Standard tolerance for deciding to perform another geometry optimization.
     # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the
@@ -270,7 +276,7 @@ class PulayTask(FiretaskBase):
     def run_task(self, fw_spec):
 
         # Extract the parameters into variables; this makes for cleaner code IMO
-        directory = self["directory"]
+        directory = self.get("directory", os.getcwd())
         in_custodian = self.get("in_custodian", False)
         number_nodes = self.get("number_nodes", None)
         tolerance = self.get("tolerance", PulayTask.pulay_tolerance)
