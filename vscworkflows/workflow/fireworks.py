@@ -82,7 +82,8 @@ class OptimizeFW(Firework):
         )
 
         # Add number of nodes to spec if specified
-        firework_spec = spec if spec is None else {}
+        firework_spec = spec if spec is not None else {}
+
         if number_nodes is None or number_nodes == 0:
             firework_spec.update({"_category": "none"})
         else:
