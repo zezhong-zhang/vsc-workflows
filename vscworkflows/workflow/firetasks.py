@@ -173,7 +173,7 @@ class VaspParallelizationTask(FiretaskBase):
 
     def _set_incar_parallellization(self, kpar):
 
-        directory = self.get("directory")
+        directory = self.get("directory", os.getcwd())
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
         incar.update({"KPAR": kpar})
