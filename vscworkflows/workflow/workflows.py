@@ -199,7 +199,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=0.1
     # For metals, use Methfessel Paxton smearing
     if is_metal:
         vasp_input_params["user_incar_settings"].update(
-            {"ISMEAR": 2, "SIGMA": 0.2}
+            {"ISMEAR": 0, "SIGMA": 0.3}
         )
 
     # Add number of nodes to spec, or "none"
