@@ -137,6 +137,9 @@ class VaspParallelizationTask(FiretaskBase):
 
     """
 
+    # TODO: Works, but the directory calling seems overkill; clean and test
+    # TODO: Do proper tests for an optimal parallelization scheme
+
     optional_params = ["directory", "KPAR"]
 
     def run_task(self, fw_spec):
@@ -177,14 +180,15 @@ class VaspParallelizationTask(FiretaskBase):
 
             kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
-            with open(os.path.join("parallel.out"), "w") as file:
+            with open(os.path.join("parallel.out"), "a") as file:
+                file.write("")
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
                 file.write("Number of cores = " + str(number_of_cores) + "\n")
                 file.write("Kpar = " + str(kpar) + "\n")
 
-        self._set_incar_parallellization(kpar)
+        self._set_incar_parallelization(kpar)
 
-    def _set_incar_parallellization(self, kpar):
+    def _set_incar_parallelization(self, kpar):
 
         directory = self.get("directory", os.getcwd())
 
@@ -230,8 +234,8 @@ class WriteVaspFromIOSet(FiretaskBase):
             you should provide: {"user_incar_settings": ...}. This setting is ignored
             if you provide the full object representation of a VaspInputSet rather
             than a String.
-    """
 
+    """ # TODO Update docstring
     required_params = ["vasp_input_set"]
     optional_params = ["structure", "parent", "vasp_input_params"]
 
@@ -278,11 +282,11 @@ class VaspWriteFinalStructureTask(FiretaskBase):
     Obtain the final structure from a calculation and write it to a json file.
 
     """
-    required_params = ["directory"]
-    optional_params = []
+    required_params = []
+    optional_params = ["directory"]
 
     def run_task(self, fw_spec):
-        directory = self.get("directory")
+        directory = self.get("directory", os.getcwd())
         vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
         vasprun.final_structure.to("json", os.path.join(directory,
                                                         "final_structure.json"))
@@ -298,27 +302,15 @@ class VaspWriteFinalSlabTask(FiretaskBase):
     the details from that file.
 
     """
-    required_params = ["directory"]
-    optional_params = []
+    required_params = []
+    optional_params = ["directory"]
 
     def run_task(self, fw_spec):
-        directory = self.get("directory")
+        directory = self.get("directory", os.getcwd())
 
         initial_slab = QSlab.from_file(os.path.join(directory, "initial_slab.json"))
         initial_slab.update_sites(directory)
         initial_slab.to("json", os.path.join(directory, "final_slab.json"))
-
-
-@explicit_serialize
-class VaspSetupTask(FiretaskBase):
-    """
-    FireTask used for setting up the setup files of a calculation. The setup scripts
-    are defined in the vscworkflows.write_input.py module.
-
-    """
-
-    def run_task(self, fw_spec):
-        pass  # TODO
 
 
 @explicit_serialize
