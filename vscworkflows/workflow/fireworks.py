@@ -68,7 +68,7 @@ class StaticFW(Firework):
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
                 parent=parents,
-                vasp_input_set="vscworfklows.setup.sets.BulkStaticSet"
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
             ))
         else:
             raise ValueError("You must provide either an input structure or "
