@@ -336,8 +336,7 @@ class PulayTask(FiretaskBase):
             is performed starting from the final geometry.
 
     """
-    option_params = ["directory", "in_custodian", "number_nodes", "tolerance",
-                     "fw_action"]
+    option_params = ["directory", "in_custodian", "tolerance", "fw_action"]
 
     # Standard tolerance for deciding to perform another geometry optimization.
     # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the
@@ -350,7 +349,6 @@ class PulayTask(FiretaskBase):
         # Extract the parameters into variables; this makes for cleaner code IMO
         directory = self.get("directory", os.getcwd())
         in_custodian = self.get("in_custodian", False)
-        number_nodes = self.get("number_nodes", None)
         tolerance = self.get("tolerance", PulayTask.pulay_tolerance)
         fw_action = self.get('fw_action', {})
 
@@ -399,21 +397,13 @@ class PulayTask(FiretaskBase):
             # Create the PyTask that check the Pulay stresses again
             pulay_task = PulayTask(
                 directory=directory, in_custodian=in_custodian,
-                number_nodes=number_nodes, tolerance=tolerance,
-                fw_action=fw_action
+                tolerance=tolerance, fw_action=fw_action
             )
-
-            # Add number of nodes to spec, or "none"
-            firework_spec = {}
-            if number_nodes is None or number_nodes == 0:
-                firework_spec.update({"_category": "none"})
-            else:
-                firework_spec.update({"_category": str(number_nodes) + "nodes"})
 
             # Combine the two FireTasks into one FireWork
             optimize_fw = Firework(tasks=[copy_contcar, vasprun,
                                           write_final_structure, pulay_task],
                                    name="Pulay Step",
-                                   spec=firework_spec)
+                                   spec=fw_spec)
 
             return FWAction(additions=optimize_fw)
