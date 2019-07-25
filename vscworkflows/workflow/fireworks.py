@@ -29,7 +29,7 @@ __date__ = "Jun 2019"
 class StaticFW(Firework):
 
     def __init__(self, structure=None, name="Static calculation",
-                 vasp_input_params=None, parents=None, write_chgcar=False,
+                 vasp_input_params=None, parents=None,
                  in_custodian=False, number_nodes=None, spec=None):
         """
         Create a FireWork for performing a static calculation.
@@ -86,7 +86,7 @@ class StaticFW(Firework):
 
         # Add number of nodes to spec, or "none"
         if number_nodes is None or number_nodes == 0:
-            spec.update({"_category": "none"})
+            spec.update({"_category": ""})
         else:
             spec.update({"_category": str(number_nodes) + "nodes"})
 
@@ -109,16 +109,6 @@ class OptimizeFW(Firework):
             name (str): # TODO
             vasp_input_params (dict):
             parents (Firework):
-            # directory (str): Directory in which the geometry optimization should be
-            #     performed.
-            # functional (tuple): Tuple with the functional choices. The first element
-            #     contains a string that indicates the functional used ("pbe", "hse", ...),
-            #     whereas the second element contains a dictionary that allows the user
-            #     to specify the various functional tags.
-            # is_metal (bool): Flag that indicates the material being studied is a
-            #     metal, which changes the smearing from Gaussian (0.05 eV) to second
-            #     order Methfessel-Paxton of 0.2 eV.
-            # TODO These can be specified from the spec or vasp_input_set_params
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             number_nodes (int): Number of nodes that should be used for the calculations.
@@ -159,12 +149,13 @@ class OptimizeFW(Firework):
 
         # Add number of nodes to spec if specified
         if number_nodes is None or number_nodes == 0:
-            spec.update({"_category": "none"})
+            spec.update({"_category": ""})
         else:
             spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
         super().__init__(tasks=tasks,
+                         parents=parents,
                          name=name,
                          spec=spec)
 
