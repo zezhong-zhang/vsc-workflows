@@ -10,7 +10,7 @@ from atomate.vasp.firetasks import WriteVaspFromIOSet
 
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
     VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
-    PulayTask
+    PulayTask, WriteVaspFromIOSet
 from vscworkflows.setup.sets import BulkRelaxSet
 
 """
@@ -26,24 +26,99 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 
+class StaticFW(Firework):
+
+    def __init__(self, structure=None, name="Static calculation",
+                 vasp_input_params=None, parents=None,
+                 write_chgcar=False, in_custodian=False, number_nodes=None):
+        """
+        Create a FireWork for performing a static calculation.
+
+        Args:
+            structure: pymatgen.Structure OR path to structure file for which to run
+                the static calculation.
+            functional (tuple): Tuple with the functional choices. The first element
+                contains a string that indicates the functional used ("pbe", "hse", ...),
+                whereas the second element contains a dictionary that allows the user
+                to specify the various functional tags.
+            directory (str): Directory in which the static calculation should be
+                performed.
+            write_chgcar (bool): Flag that indicates whether the CHGCAR file should
+                be written.
+            in_custodian (bool): Flag that indicates whether the calculation should be
+                run inside a Custodian.
+            number_nodes (int): Number of nodes that should be used for the calculations.
+                Is required to add the proper `_category` to the Firework generated, so
+                it is picked up by the right Fireworker.
+
+        Returns:
+            Firework: A firework that represents a static calculation.
+
+        """
+
+        tasks = list()
+
+        vasp_input_params = vasp_input_params or {}
+
+        if structure is not None:
+            tasks.append(WriteVaspFromIOSet(
+                structure=structure,
+                vasp_input_set=BulkRelaxSet(structure, **vasp_input_params)
+            ))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parent=parents,
+                vasp_input_set="vscworfklows.setup.sets.BulkStaticSet"
+            ))
+        else:
+            raise ValueError("You must provide either an input structure or "
+                             "parent firework to StaticFW!")
+
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask())
+
+        # Run the calculation
+        if in_custodian:
+            tasks.append(CustodianTask())
+        else:
+            tasks.append(VaspTask())
+
+        # Add number of nodes to spec, or "none"
+        firework_spec = {}
+        if number_nodes is None or number_nodes == 0:
+            firework_spec.update({"_category": "none"})
+        else:
+            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+
+        # Combine the two FireTasks into one FireWork
+        super().__init__(
+            tasks=tasks, name=name, spec=firework_spec
+        )
+
+
 class OptimizeFW(Firework):
 
-    def __init__(self, structure, vasp_input_set_params=None,
-                 in_custodian=False, number_nodes=None, fw_action=None, spec=None):
+    def __init__(self, structure, name="Geometry Optimization",
+                 vasp_input_params=None, parents=None, in_custodian=False,
+                 number_nodes=None, fw_action=None, spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
         Args:
             structure: structure: pymatgen.Structure OR path to the structure file.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
-            functional (tuple): Tuple with the functional choices. The first element
-                contains a string that indicates the functional used ("pbe", "hse", ...),
-                whereas the second element contains a dictionary that allows the user
-                to specify the various functional tags.
-            is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian (0.05 eV) to second
-                order Methfessel-Paxton of 0.2 eV.
+            name (str): # TODO
+            vasp_input_params (dict):
+            parents (Firework):
+            # directory (str): Directory in which the geometry optimization should be
+            #     performed.
+            # functional (tuple): Tuple with the functional choices. The first element
+            #     contains a string that indicates the functional used ("pbe", "hse", ...),
+            #     whereas the second element contains a dictionary that allows the user
+            #     to specify the various functional tags.
+            # is_metal (bool): Flag that indicates the material being studied is a
+            #     metal, which changes the smearing from Gaussian (0.05 eV) to second
+            #     order Methfessel-Paxton of 0.2 eV.
+            # TODO These can be specified from the spec or vasp_input_set_params
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             number_nodes (int): Number of nodes that should be used for the calculations.
@@ -55,11 +130,11 @@ class OptimizeFW(Firework):
         """
         tasks = list()
 
-        vasp_input_set_params = vasp_input_set_params or {}
+        vasp_input_params = vasp_input_params or {}
 
         tasks.append(WriteVaspFromIOSet(
             structure=structure,
-            vasp_input_set=BulkRelaxSet(structure, **vasp_input_set_params)
+            vasp_input_set=BulkRelaxSet(structure, **vasp_input_params)
         ))
 
         # Configure the parallelization settings
@@ -91,7 +166,7 @@ class OptimizeFW(Firework):
 
         # Combine the FireTasks into one FireWork
         super().__init__(tasks=tasks,
-                         name="Geometry optimization",
+                         name=name,
                          spec=firework_spec)
 
 

@@ -77,6 +77,48 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
                     name=workflow_name)
 
 
+def get_wf_energy(structure, directory, functional=("pbe", {}),
+                  is_metal=False, in_custodian=False, number_nodes=None,
+                  fw_action=None):
+    """
+    Set up a geometry optimization workflow for a bulk structure.
+
+    Args:
+        structure: pymatgen.Structure OR path to the structure file.
+        directory (str): Directory in which the geometry optimization should be performed.
+        functional (tuple): Tuple with the functional details. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user
+            to specify the various functional tags.
+        is_metal (bool): Flag that indicates the material being studied is a
+                metal, which changes the smearing from Gaussian (0.05 eV) to second
+                order Methfessel-Paxton of 0.2 eV.
+        in_custodian (bool): Flag that indicates whether the calculation should be
+            run inside a Custodian.
+        number_nodes (int): Number of nodes that should be used for the calculations.
+            Is required to add the proper `_category` to the Firework generated, so
+            it is picked up by the right Fireworker.
+        fw_action (fireworks.FWAction): FWAction to return after the final
+                PulayTask is completed.
+
+    """
+    # Set up the geometry optimization Firework
+    optimize_fw = OptimizeFW(structure=structure,
+                             in_custodian=in_custodian,
+                             number_nodes=number_nodes,
+                             fw_action=fw_action)
+
+    #
+
+    # Set up a clear name for the workflow
+    workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
+    workflow_name += " " + str(functional)
+
+    # Create the workflow
+    return Workflow(fireworks=[optimize_fw, ],
+                    name=workflow_name)
+
+
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=80,
                   is_metal=False, in_custodian=False, number_nodes=None):
     """

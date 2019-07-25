@@ -13,13 +13,15 @@ from quotas import QSlab
 
 from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.io.vasp.sets import get_structure_from_prev_run
 from pymatgen.io.vasp.inputs import Incar, Kpoints
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, PyTask, \
     explicit_serialize
 from custodian import Custodian
 from custodian.vasp.jobs import VaspJob
 from custodian.vasp.handlers import VaspErrorHandler, UnconvergedErrorHandler
+from atomate.utils.utils import load_class
 
 """
 Definition of the FireTasks for the workflows.
@@ -35,7 +37,7 @@ __date__ = "Jun 2019"
 
 
 def _find_irr_k_points(directory):
-    # TODO Fail for magnetic structures.
+    # TODO Fails for magnetic structures.
     # It seems that the algorithm is not taking the magnetic moments into account
     # properly. Fix this.
 
@@ -52,6 +54,13 @@ def _find_irr_k_points(directory):
     spg = SpacegroupAnalyzer(structure, symprec=1e-5)
 
     return len(spg.get_ir_reciprocal_mesh(kpoints.kpts))
+
+
+def _load_structure_from_dir(directory):
+    vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
+    outcar = Outcar(os.path.join(directory, "OUTCAR"))
+
+    return get_structure_from_prev_run(vasprun, outcar)
 
 
 @explicit_serialize
@@ -138,8 +147,10 @@ class VaspParallelizationTask(FiretaskBase):
         if self.get("KPAR", None) is None:
 
             os.chdir(directory)
-            stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
-            stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
+            stdout_file = self.get("stdout_file",
+                                   os.path.join(directory, "parallel.out"))
+            stderr_file = self.get("stderr_file",
+                                   os.path.join(directory, "parallel.out"))
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
             # Get the number of k-points
@@ -160,12 +171,13 @@ class VaspParallelizationTask(FiretaskBase):
             try:
                 number_of_cores = int(os.environ["PBS_NP"])
             except KeyError:
-                raise NotImplementedError("This Firetask currently only supports PBS "
-                                          "schedulers.")
+                raise NotImplementedError(
+                    "This Firetask currently only supports PBS "
+                    "schedulers.")
 
             kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
-            with open(os.path.join("parallel"), "w") as file:
+            with open(os.path.join("parallel.out"), "w") as file:
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
                 file.write("Number of cores = " + str(number_of_cores) + "\n")
                 file.write("Kpar = " + str(kpar) + "\n")
@@ -190,7 +202,74 @@ class VaspParallelizationTask(FiretaskBase):
 
         good_kpar_guess = np.sqrt(n_cores)
 
-        return suitable_divisors[(np.abs(suitable_divisors - good_kpar_guess)).argmin()]
+        return suitable_divisors[
+            (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
+
+
+@explicit_serialize
+class WriteVaspFromIOSet(FiretaskBase):
+    """
+    Create VASP input files using implementations of pymatgen's AbstractVaspInputSet.
+    An input set can be provided as an object or as a String/parameter combo.
+
+    Note: Even though both 'structure' and 'parent' are optional parameters,
+    at least one of them must be set! Else the Firetask will not have a geometry
+    to set up the calculation for.
+
+    Required params:
+        vasp_input_set (AbstractVaspInputSet or str): Either a VaspInputSet object
+            or a string name for the VASP input set (e.g., "MPRelaxSet").
+
+    Optional params:
+        structure (Structure): structure
+        parent (Firework): A single parent firework from which to extract the
+            final geometry, as well
+        vasp_input_params (dict): When using a string name for VASP input set, use
+            this as a dict to specify kwargs for instantiating the input set
+            parameters. For example, if you want to change the user_incar_settings,
+            you should provide: {"user_incar_settings": ...}. This setting is ignored
+            if you provide the full object representation of a VaspInputSet rather
+            than a String.
+    """
+
+    required_params = ["vasp_input_set"]
+    optional_params = ["structure", "parent", "vasp_input_params"]
+
+    def run_task(self, fw_spec):
+        # If a full VaspInputSet object was provided
+        if hasattr(self['vasp_input_set'], 'write_input'):
+            input_set = self['vasp_input_set']
+
+        # If VaspInputSet String + parameters was provided
+        else:
+            # If the user has provided a full module path to class
+            if "." in self["vasp_input_set"]:
+                classname = self["vasp_input_set"].split(".")[-1]
+                modulepath = ".".join(self["vasp_input_set"].split(".")[:-1])
+                input_set_cls = load_class(modulepath, classname)
+            else:
+                # Try our sets first
+                try:
+                    input_set_cls = load_class("vscworkflows.setup.sets",
+                                               self["vasp_input_set"])
+                # Check the pymatgen sets for the requested set
+                except ModuleNotFoundError:
+                    input_set_cls = load_class("pymatgen.io.vasp.sets",
+                                               self["vasp_input_set"])
+
+            if "structure" in self.keys():
+                input_set = input_set_cls(self["structure"],
+                                          **self.get("vasp_input_params", {}))
+            elif "parent" in self.keys():
+                parent_dir = self["parent"].spec["_launch_dir"]
+                structure = _load_structure_from_dir(parent_dir)
+                input_set = input_set_cls(structure,
+                                          **self.get("vasp_input_params", {}))
+            else:
+                raise ValueError("You must provide either an input structure or "
+                                 "parent firework to WriteVaspFromIOSet!")
+
+        input_set.write_input(".")
 
 
 @explicit_serialize
