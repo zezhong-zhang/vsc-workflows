@@ -209,7 +209,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=0.1
     # Add the requested k-point resolution to the input parameters
     kpt_divisions = [int(l / k_resolution + 0.5) for l in
                      structure.lattice.reciprocal_lattice.lengths]
-    vasp_input_params["user_kpoint_settings"] = {"length": kpt_divisions}
+    vasp_input_params["user_kpoints_settings"] = {"length": kpt_divisions}
 
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(

@@ -150,7 +150,7 @@ class OpticsFW(StaticFW):
         # Default input parameters
         optics_input_params = {
             "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6},
-            "user_kpoint_settings": {"reciprocal_density": 200}
+            "user_kpoints_settings": {"reciprocal_density": 200}
         }
         # Update the defaults with the user specified input parameters
         for k, v in vasp_input_params.items():
