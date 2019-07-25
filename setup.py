@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vscworkflows",
-    version="Planning",
+    version="pre-alpha",
     author="Marnik Bercx",
     packages=find_packages(where=".", exclude="docs"),
     install_requires=[
