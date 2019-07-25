@@ -62,7 +62,7 @@ def main():
 
 
 @main.command(context_settings=CONTEXT_SETTINGS)
-@click.option("-N", "--lpad_name", default="base",
+@click.option("-l", "--lpad_name", default="base",
               help="Name of the configured launchpad that contains the details of the "
                    "mongoDB server you want to run Fireworks from. Defaults to 'base'.")
 @click.option("-f", "--fworker_name", default="base",
