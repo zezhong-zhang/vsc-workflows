@@ -29,8 +29,8 @@ __date__ = "Jun 2019"
 class StaticFW(Firework):
 
     def __init__(self, structure=None, name="Static calculation",
-                 vasp_input_params=None, parents=None,
-                 write_chgcar=False, in_custodian=False, number_nodes=None):
+                 vasp_input_params=None, parents=None, write_chgcar=False,
+                 in_custodian=False, number_nodes=None, spec=None):
         """
         Create a FireWork for performing a static calculation.
 
@@ -59,6 +59,7 @@ class StaticFW(Firework):
         tasks = list()
 
         vasp_input_params = vasp_input_params or {}
+        spec = spec if spec is not None else {}
 
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
@@ -84,15 +85,14 @@ class StaticFW(Firework):
             tasks.append(VaspTask())
 
         # Add number of nodes to spec, or "none"
-        firework_spec = {}
         if number_nodes is None or number_nodes == 0:
-            firework_spec.update({"_category": "none"})
+            spec.update({"_category": "none"})
         else:
-            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+            spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the two FireTasks into one FireWork
         super().__init__(
-            tasks=tasks, name=name, spec=firework_spec
+            tasks=tasks, name=name, spec=spec
         )
 
 
@@ -131,6 +131,7 @@ class OptimizeFW(Firework):
         tasks = list()
 
         vasp_input_params = vasp_input_params or {}
+        spec = spec if spec is not None else {}
 
         tasks.append(WriteVaspFromIOSet(
             structure=structure,
@@ -157,17 +158,15 @@ class OptimizeFW(Firework):
         )
 
         # Add number of nodes to spec if specified
-        firework_spec = spec if spec is not None else {}
-
         if number_nodes is None or number_nodes == 0:
-            firework_spec.update({"_category": "none"})
+            spec.update({"_category": "none"})
         else:
-            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+            spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
         super().__init__(tasks=tasks,
                          name=name,
-                         spec=firework_spec)
+                         spec=spec)
 
 
 class OpticsFW(Firework):
