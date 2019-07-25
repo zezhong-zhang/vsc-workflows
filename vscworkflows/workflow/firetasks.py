@@ -13,7 +13,7 @@ from quotas import QSlab
 
 from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.io.vasp.sets import get_structure_from_prev_run
+from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
 from pymatgen.io.vasp.inputs import Incar, Kpoints
 from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, PyTask, \
@@ -57,8 +57,8 @@ def _find_irr_k_points(directory):
 
 
 def _load_structure_from_dir(directory):
-    vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
-    outcar = Outcar(os.path.join(directory, "OUTCAR"))
+
+    vasprun, outcar = get_vasprun_outcar(directory)
 
     return get_structure_from_prev_run(vasprun, outcar)
 
