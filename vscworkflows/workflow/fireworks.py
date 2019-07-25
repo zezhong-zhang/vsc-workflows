@@ -11,7 +11,7 @@ from atomate.vasp.firetasks import WriteVaspFromIOSet
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
     VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
     PulayTask, WriteVaspFromIOSet
-from vscworkflows.setup.sets import BulkRelaxSet
+from vscworkflows.setup.sets import BulkRelaxSet, BulkStaticSet
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -53,7 +53,7 @@ class StaticFW(Firework):
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
                 structure=structure,
-                vasp_input_set=BulkRelaxSet(structure, **vasp_input_params)
+                vasp_input_set=BulkStaticSet(structure, **vasp_input_params)
             ))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
