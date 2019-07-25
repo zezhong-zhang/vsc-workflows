@@ -110,7 +110,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
     # Add number of nodes to spec, or "none"
     if number_nodes is not None and number_nodes != 0:
-        spec.update({"_category": str(number_nodes) + "nodes"})
+        spec.update({"_fworker": str(number_nodes) + "nodes"})
 
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
