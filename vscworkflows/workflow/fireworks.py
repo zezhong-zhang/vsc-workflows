@@ -153,7 +153,7 @@ class OpticsFW(StaticFW):
             "user_kpoint_settings": {"reciprocal_density": 200}
         }
         # Update the defaults with the user specified input parameters
-        for k, v in vasp_input_params:
+        for k, v in vasp_input_params.items():
             if k in optics_input_params.keys():
                 optics_input_params[k].update(v)
             else:
