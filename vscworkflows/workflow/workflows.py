@@ -3,7 +3,7 @@
 # Distributed under the terms of the MIT License
 
 import os
-
+from pymatgen.io.vasp.inputs import Kpoints
 from fireworks import Workflow, FWAction
 from monty.serialization import loadfn
 from vscworkflows.workflow.fireworks import OptimizeFW, OpticsFW, SlabOptimizeFW, \
@@ -169,7 +169,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
                     name=workflow_name)
 
 
-def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=80,
+def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=0.1,
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow.
@@ -193,15 +193,30 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=80,
             it is picked up by the right Fireworker.
 
     """
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec = {"_launch_dir": directory}
+
+    # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec.update({"_fworker": str(number_nodes) + "nodes"})
+
+    # Add the requested k-point resolution to the input parameters
+    kpt_divisions = [int(l / k_resolution + 0.5) for l in
+                     structure.lattice.reciprocal_lattice.lengths]
+    vasp_input_params["user_kpoint_settings"] = {"length": kpt_divisions}
+
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(
         structure=structure,
-        directory=directory,
-        functional=functional,
-        k_resolution=k_resolution,
-        is_metal=is_metal,
+        vasp_input_params=vasp_input_params,
         in_custodian=in_custodian,
-        number_nodes=number_nodes
+        spec=spec
     )
 
     # Set up a clear name for the workflow
