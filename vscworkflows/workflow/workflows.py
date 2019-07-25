@@ -21,7 +21,9 @@ __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
-MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "set_configs")
+MODULE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "../setup/set_configs"
+)
 
 
 def _load_yaml_config(filename):
@@ -53,7 +55,7 @@ def _set_up_vasp_input_params(structure, functional):
 
     """
 
-    vasp_input_params = {}
+    vasp_input_params = {"user_incar_settings": {}}
 
     # Check if a magnetic moment was provided for the sites. If so, perform a
     # spin-polarized calculation
@@ -98,6 +100,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
     """
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec = {"_launch_dir": directory}
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
@@ -105,12 +108,15 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
 
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec.update({"_category": str(number_nodes) + "nodes"})
+
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             number_nodes=number_nodes,
-                             spec={"_launch_dir": directory})
+                             spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")

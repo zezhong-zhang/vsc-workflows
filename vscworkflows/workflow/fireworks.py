@@ -30,26 +30,15 @@ class StaticFW(Firework):
 
     def __init__(self, structure=None, name="Static calculation",
                  vasp_input_params=None, parents=None,
-                 in_custodian=False, number_nodes=None, spec=None):
+                 in_custodian=False, spec=None):
         """
         Create a FireWork for performing a static calculation.
 
-        Args:
+        Args: #TODO
             structure: pymatgen.Structure OR path to structure file for which to run
                 the static calculation.
-            functional (tuple): Tuple with the functional choices. The first element
-                contains a string that indicates the functional used ("pbe", "hse", ...),
-                whereas the second element contains a dictionary that allows the user
-                to specify the various functional tags.
-            directory (str): Directory in which the static calculation should be
-                performed.
-            write_chgcar (bool): Flag that indicates whether the CHGCAR file should
-                be written.
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
-            number_nodes (int): Number of nodes that should be used for the calculations.
-                Is required to add the proper `_category` to the Firework generated, so
-                it is picked up by the right Fireworker.
 
         Returns:
             Firework: A firework that represents a static calculation.
@@ -84,12 +73,6 @@ class StaticFW(Firework):
         else:
             tasks.append(VaspTask())
 
-        # Add number of nodes to spec, or "none"
-        if number_nodes is None or number_nodes == 0:
-            spec.update({"_category": ""})
-        else:
-            spec.update({"_category": str(number_nodes) + "nodes"})
-
         # Combine the two FireTasks into one FireWork
         super().__init__(
             tasks=tasks, name=name, spec=spec
@@ -100,7 +83,7 @@ class OptimizeFW(Firework):
 
     def __init__(self, structure, name="Geometry Optimization",
                  vasp_input_params=None, parents=None, in_custodian=False,
-                 number_nodes=None, fw_action=None, spec=None):
+                 fw_action=None, spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -111,9 +94,6 @@ class OptimizeFW(Firework):
             parents (Firework):
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
-            number_nodes (int): Number of nodes that should be used for the calculations.
-                Is required to add the proper `_category` to the Firework generated, so
-                it is picked up by the right Fireworker.
             fw_action (fireworks.FWAction): FWAction to return after the final
                 PulayTask is completed.
 
@@ -138,20 +118,14 @@ class OptimizeFW(Firework):
             tasks.append(VaspTask())
 
         # Write the final structure to a json file for subsequent calculations
-        # tasks.append(VaspWriteFinalStructureTask())
+        # tasks.append(VaspWriteFinalStructureTask()) TODO
 
         # Check the Pulay stress
         tasks.append(
             PulayTask(in_custodian=in_custodian,
-                      number_nodes=number_nodes,
-                      fw_action=fw_action)
+                      fw_action=fw_action,
+                      spec=spec)
         )
-
-        # Add number of nodes to spec if specified
-        if number_nodes is None or number_nodes == 0:
-            spec.update({"_category": ""})
-        else:
-            spec.update({"_category": str(number_nodes) + "nodes"})
 
         # Combine the FireTasks into one FireWork
         super().__init__(tasks=tasks,
