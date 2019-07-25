@@ -5,7 +5,7 @@
 import os
 
 from fireworks import Workflow, FWAction
-
+from monty.serialization import loadfn
 from vscworkflows.workflow.fireworks import OptimizeFW, OpticsFW, SlabOptimizeFW, \
     SlabDosFW
 
@@ -21,6 +21,13 @@ __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
+MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "set_configs")
+
+
+def _load_yaml_config(filename):
+    config = loadfn(os.path.join(MODULE_DIR, "%s.yaml" % filename))
+    return config
+
 
 def _set_up_relative_directory(directory, functional, calculation):
     # Set up a calculation directory for a specific functional and calculation
@@ -34,9 +41,42 @@ def _set_up_relative_directory(directory, functional, calculation):
     return directory
 
 
+def _set_up_vasp_input_params(structure, functional):
+    """
+    Set up the vasp_input_params based on the functional and some other conventions.
+
+    Args:
+        structure (Structure):
+        functional (tuple):
+
+    Returns:
+
+    """
+
+    vasp_input_params = {}
+
+    # Check if a magnetic moment was provided for the sites. If so, perform a
+    # spin-polarized calculation
+    if "magmom" in structure.site_properties.keys():
+        vasp_input_params["user_incar_settings"].update(
+            {"ISPIN": 2, "MAGMOM": True}
+        )
+
+    # Adjust the projector-evaluation scheme to Auto for large unit cells (+20 atoms)
+    if len(structure) > 20:
+        vasp_input_params["user_incar_settings"].update({"LREAL": "Auto"})
+
+    # Set up the functional
+    if functional[0] != "pbe":
+        functional_config = _load_yaml_config(functional[0] + "Set")
+        functional_config["INCAR"].update(functional[1])
+        vasp_input_params["user_incar_settings"].update(functional_config["INCAR"])
+
+    return vasp_input_params
+
+
 def get_wf_optimize(structure, directory, functional=("pbe", {}),
-                    is_metal=False, in_custodian=False, number_nodes=None,
-                    fw_action=None):
+                    is_metal=False, in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow for a bulk structure.
 
@@ -55,18 +95,22 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
-        fw_action (fireworks.FWAction): FWAction to return after the final
-                PulayTask is completed.
 
     """
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+
+    # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
-                             functional=functional,
-                             directory=directory,
-                             is_metal=is_metal,
+                             vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
                              number_nodes=number_nodes,
-                             fw_action=fw_action)
+                             spec={"_launch_dir": directory})
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
