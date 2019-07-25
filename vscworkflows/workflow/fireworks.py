@@ -134,69 +134,34 @@ class OptimizeFW(Firework):
                          spec=spec)
 
 
-class OpticsFW(Firework):
+class OpticsFW(StaticFW):
 
-    def __init__(self, structure, directory, functional, k_resolution=0.05,
-                 is_metal=False, in_custodian=False, number_nodes=None):
+    def __init__(self, structure=None, name="Optics calculation",
+                 vasp_input_params=None, parents=None,
+                 in_custodian=False, spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
-        Args:
+        Args: # TODO
             structure: pymatgen.Structure OR path to structure file for which to run
                 the geometry optimization.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
-            functional (tuple): Tuple with the functional choices. The first element
-                contains a string that indicates the functional used ("pbe", "hse", ...),
-                whereas the second element contains a dictionary that allows the user
-                to specify the various functional tags.
-            k_resolution (float): Resolution of the k-mesh, i.e. distance between two
-                k-points along each reciprocal lattice vector.
-            is_metal (bool): Flag that indicates the material being studied is a
-                metal. The calculation will then use a broad Gaussian smearing of 0.3
-                eV instead of the tetrahedron method.
-            in_custodian (bool): Flag that indicates whether the calculation should be
-                run inside a Custodian.
-            number_nodes (int): Number of nodes that should be used for the calculations.
-                Is required to add the proper `_category` to the Firework generated, so
-                it is picked up by the right Fireworker.
 
         """
-        tasks = list()
+        # Default input parameters
+        optics_input_params = {
+            "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6},
+            "user_kpoint_settings": {"reciprocal_density": 200}
+        }
+        # Update the defaults with the user specified input parameters
+        for k, v in vasp_input_params:
+            if k in optics_input_params.keys():
+                optics_input_params[k].update(v)
+            else:
+                optics_input_params[k] = v
 
-        # Set up the input files of the calculation
-        tasks.append(
-            PyTask(func="vscworkflows.setup.write_input.optics",
-                   kwargs={"structure": structure,
-                           "directory": directory,
-                           "functional": functional,
-                           "k_resolution": k_resolution,
-                           "is_metal": is_metal})
-        )
-
-        # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask(directory=directory))
-
-        # Run the calculation
-        if in_custodian:
-            tasks.append(CustodianTask(directory=directory))
-        else:
-            tasks.append(VaspTask(directory=directory))
-
-        # Write the final structure to a json file for subsequent calculations
-        tasks.append(VaspWriteFinalStructureTask(directory=directory))
-
-        # Add number of nodes to spec if specified
-        firework_spec = {}
-        if number_nodes is None or number_nodes == 0:
-            firework_spec.update({"_category": "none"})
-        else:
-            firework_spec.update({"_category": str(number_nodes) + "nodes"})
-
-        # Combine the FireTasks into one FireWork
-        super().__init__(tasks=tasks,
-                         name="Optics",
-                         spec=firework_spec)
+        super().__init__(structure=structure, name=name,
+                         vasp_input_params=optics_input_params, parents=parents,
+                         in_custodian=in_custodian, spec=spec)
 
 
 class SlabOptimizeFW(Firework):
