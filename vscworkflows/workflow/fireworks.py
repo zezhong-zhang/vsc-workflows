@@ -33,18 +33,20 @@ class StaticFW(Firework):
         """
         Create a FireWork for performing a static calculation.
 
-        Args: #TODO
+        Args:
             structure (Structure): Geometry of the structure that should be
                 optimized.
             name (str): Name of the Firework
             vasp_input_params (dict): User defined input parameters for the
                 calculation. These are passed as kwargs to the VASP input set.
                 Common examples for keys of this dictionary are
-                "user_incar_settings", "user_kpoints_settings" etc.
+                "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should be
-                run inside a Custodian.
+            in_custodian (bool): Flag that indicates whether the calculation should
+                be run inside a Custodian.
+            spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
+                '_category', etc.
 
         Returns:
             Firework: A firework that represents a static calculation.
@@ -52,9 +54,7 @@ class StaticFW(Firework):
         """
 
         tasks = list()
-
         vasp_input_params = vasp_input_params or {}
-        spec = spec if spec is not None else {}
 
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
@@ -95,13 +95,19 @@ class OptimizeFW(Firework):
 
         Args:
             structure: structure: pymatgen.Structure OR path to the structure file.
-            name (str): # TODO
-            vasp_input_params (dict):
-            parents (Firework):
-            in_custodian (bool): Flag that indicates whether the calculation should be
-                run inside a Custodian.
+            name (str): Name of the Firework
+            vasp_input_params (dict): User defined input parameters for the
+                calculation. These are passed as kwargs to the VASP input set.
+                Common examples for keys of this dictionary are
+                "user_incar_settings", "user_kpoints_settings", etc.
+            parents (Firework or List): Firework or list of Fireworks that are the
+                parents of this Firework.
+            in_custodian (bool): Flag that indicates whether the calculation should
+                be run inside a Custodian.
             fw_action (fireworks.FWAction): FWAction to return after the final
                 PulayTask is completed.
+            spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
+                '_category', etc.
 
         """
         tasks = list()
@@ -175,18 +181,21 @@ class SlabStaticFW(Firework):
     def __init__(self, slab, name="Slab Static", vasp_input_params=None,
                  parents=None, in_custodian=False, spec=None):
         """
-        #TODO
+        A static calculation for a slab structure.
 
         Args:
-            slab: quotas.QSlab OR path to slab structure file for which to run
-            the DOS calculation.
-
-        calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
-            determine the work function.
-        in_custodian (bool): Flag that indicates whether the calculation should be
-            run inside a Custodian.
-
-
+            slab (Slab): Geometry of the structure.
+            name (str): Name of the Firework.
+            vasp_input_params (dict): User defined input parameters for the
+                calculation. These are passed as kwargs to the VASP input set.
+                Common examples for keys of this dictionary are
+                "user_incar_settings", "user_kpoints_settings", etc.
+            parents (Firework or List): Firework or list of Fireworks that are the
+                parents of this Firework.
+            in_custodian (bool): Flag that indicates whether the calculation should be
+                run inside a Custodian.
+            spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
+                '_category', etc.
         """
         tasks = list()
         vasp_input_params = vasp_input_params or {}
@@ -287,7 +296,7 @@ class SlabDosFW(Firework):
             vasp_input_set=SlabStaticSet(
                 structure=slab,
                 user_incar_settings={"LCHARG": True}
-        )))
+            )))
 
         # Create the PyTask that runs the calculation
         if in_custodian:

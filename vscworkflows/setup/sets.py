@@ -86,7 +86,7 @@ class SlabStaticSet(DictSet):
                          **kwargs)
         # Default settings for a static slab calculation
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001, "ISMEAR": 0,
-                    "SIGMA": 0.01, "SYMPREC": 1e-3}
+                    "SIGMA": 0.01, "SYMPREC": 1e-8}
 
         self._config_dict["INCAR"].update(defaults)
         self.k_resolution = k_resolution
@@ -113,35 +113,6 @@ class SlabStaticSet(DictSet):
 
             return kpoints
 
-    # TODO: This method might still be useful; Check later
-    # @staticmethod
-    # def from_relax_calc(relax_dir, k_product, **kwargs):
-    #     """
-    #     Set up the calculation based on the output of the geometry
-    #     optimization.
-    #
-    #     """
-    #     relax_dir = os.path.abspath(relax_dir)
-    #
-    #     # TODO this can be made more general
-    #     # Obtain the structure from the CONTCAR file of the VASP calculation
-    #     try:
-    #         structure = Structure.from_file(os.path.join(relax_dir, "CONTCAR"))
-    #     except FileNotFoundError:
-    #         structure = Structure.from_file(os.path.join(relax_dir,
-    #                                                      "CONTCAR.vasp"))
-    #
-    #     # Initialize the magnetic configuration in the same way as for the
-    #     # geometry optimization
-    #     incar = Incar.from_file(os.path.join(relax_dir, "INCAR"))
-    #     magmom = incar["MAGMOM"]
-    #     structure.add_site_property("magmom", magmom)
-    #
-    #     return slabWorkFunctionSet(structure=structure,
-    #                                k_product=k_product,
-    #                                potcar_functional=DFT_FUNCTIONAL,
-    #                                **kwargs)
-
 
 class SlabOptimizeSet(DictSet):
     """
@@ -159,7 +130,7 @@ class SlabOptimizeSet(DictSet):
 
         # Defaults for a slab optimization
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001,
-                    "SYMPREC": 1e-8} #"ISYM": 0
+                    "SYMPREC": 1e-8}
 
         self._config_dict["INCAR"].update(defaults)
         self.k_resolution = k_resolution
