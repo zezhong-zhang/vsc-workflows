@@ -187,8 +187,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[optimize_fw, static_fw],
-                    links_dict={optimize_fw: static_fw},
+    return Workflow(fireworks=[optimize_fw],
                     name=workflow_name)
 
 
