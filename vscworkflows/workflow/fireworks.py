@@ -34,8 +34,15 @@ class StaticFW(Firework):
         Create a FireWork for performing a static calculation.
 
         Args: #TODO
-            structure: pymatgen.Structure OR path to structure file for which to run
-                the static calculation.
+            structure (Structure): Geometry of the structure that should be
+                optimized.
+            name (str): Name of the Firework
+            vasp_input_params (dict): User defined input parameters for the
+                calculation. These are passed as kwargs to the VASP input set.
+                Common examples for keys of this dictionary are
+                "user_incar_settings", "user_kpoints_settings" etc.
+            parents (Firework or List): Firework or list of Fireworks that are the
+                parents of this Firework.
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
 
