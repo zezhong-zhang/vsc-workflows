@@ -54,7 +54,7 @@ class BulkStaticSet(DictSet):
         """
         if self.k_resolution is not None:
             # Use k_resolution to calculate kpoints
-            kpt_divisions = [int(l / self.k_resolution + 0.5) for l in
+            kpt_divisions = [round(l / self.k_resolution + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
 
             kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)

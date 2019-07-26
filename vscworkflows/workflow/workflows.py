@@ -169,7 +169,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
                     name=workflow_name)
 
 
-def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=0.1,
+def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow.
@@ -201,14 +201,18 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=0.1
         vasp_input_params["user_incar_settings"].update(
             {"ISMEAR": 0, "SIGMA": 0.3}
         )
+        k_resolution = k_resolution or 0.05
+    else:
+        k_resolution = k_resolution or 0.1
 
     # Add number of nodes to spec, or "none"
     if number_nodes is not None and number_nodes != 0:
         spec.update({"_fworker": str(number_nodes) + "nodes"})
 
     # Add the requested k-point resolution to the input parameters
-    kpt_divisions = [int(l / k_resolution + 0.5) for l in
+    kpt_divisions = [round(l / k_resolution + 0.5) for l in
                      structure.lattice.reciprocal_lattice.lengths]
+
     vasp_input_params["user_kpoints_settings"] = {"length": kpt_divisions}
 
     # Set up the geometry optimization Firework
