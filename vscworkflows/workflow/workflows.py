@@ -181,8 +181,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             fw_action=FWAction(additions=static_fw, update_spec={
-                                 "parent_dir": optimize_fw}),
+                             fw_action=FWAction(additions=static_fw),
                              spec=spec)
 
     # Set up a clear name for the workflow
