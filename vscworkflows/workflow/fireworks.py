@@ -2,7 +2,7 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import os
+import os, warnings
 
 from fireworks import PyTask, Firework
 
@@ -66,8 +66,9 @@ class StaticFW(Firework):
                 vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
             ))
         else:
-            raise ValueError("You must provide either an input structure or "
-                             "parent firework to StaticFW!")
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
+            ))
 
         # Configure the parallelization settings
         tasks.append(VaspParallelizationTask())

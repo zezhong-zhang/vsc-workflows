@@ -311,6 +311,11 @@ class WriteVaspFromIOSet(FiretaskBase):
                 structure = _load_structure_from_dir(parent_dir)
                 input_set = input_set_cls(structure,
                                           **self.get("vasp_input_params", {}))
+            elif fw_spec["parents"]:
+                parent_dir = fw_spec["parents"]["spec"]["_launch_dir"]
+                structure = _load_structure_from_dir(parent_dir)
+                input_set = input_set_cls(structure,
+                                          **self.get("vasp_input_params", {}))
             else:
                 raise ValueError("You must provide either an input structure or "
                                  "parent firework to WriteVaspFromIOSet!")

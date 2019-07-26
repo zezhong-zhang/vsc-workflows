@@ -6,8 +6,8 @@ import os
 from pymatgen.io.vasp.inputs import Kpoints
 from fireworks import Workflow, FWAction
 from monty.serialization import loadfn
-from vscworkflows.workflow.fireworks import OptimizeFW, OpticsFW, SlabOptimizeFW, \
-    SlabDosFW
+from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
+    SlabOptimizeFW, SlabDosFW
 
 """
 Definition of all workflows in the package.
@@ -128,8 +128,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
 
 def get_wf_energy(structure, directory, functional=("pbe", {}),
-                  is_metal=False, in_custodian=False, number_nodes=None,
-                  fw_action=None):
+                  is_metal=False, in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow for a bulk structure.
 
@@ -148,24 +147,50 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
-        fw_action (fireworks.FWAction): FWAction to return after the final
-                PulayTask is completed.
 
     """
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
+
+    # -> Set up the static calcu
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                           "static")})
+    # Set up the static Firework
+    static_fw = StaticFW(vasp_input_params=vasp_input_params,
+                         in_custodian=in_custodian,
+                         spec=spec)
+
+    # Update params and spec for optimization Firework
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "optimize"),
+         "_pass_job_info": True})
+
+    # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
+                             vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             number_nodes=number_nodes,
-                             fw_action=fw_action)
-
-    #
+                             fw_action=FWAction(additions=static_fw, update_spec={
+                                 "parent_dir": optimize_fw}),
+                             spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[optimize_fw, ],
+    return Workflow(fireworks=[optimize_fw],
                     name=workflow_name)
 
 
