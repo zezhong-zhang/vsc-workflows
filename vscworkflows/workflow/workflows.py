@@ -149,6 +149,22 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
             it is picked up by the right Fireworker.
 
     """
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
+
+    # -> Set up the static calcu
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                           "static")})
+    # Set up the static Firework
+    static_fw = StaticFW(vasp_input_params=vasp_input_params,
+                         in_custodian=in_custodian,
+                         spec=spec)
+
+    # Update params and spec for optimization Firework
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
     spec = {"_launch_dir": _set_up_relative_directory(directory, functional,
                                                       "optimize")}
@@ -159,25 +175,12 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
 
-    # Add number of nodes to spec, or "none"
-    if number_nodes is not None and number_nodes != 0:
-        spec.update({"_fworker": str(number_nodes) + "nodes"})
-
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
+                             fw_action=FWAction(additions=static_fw),
                              spec=spec)
-
-    # Reset the vasp_input_params
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
-                                                           "static")})
-    # Set up the static Firework
-    static_fw = StaticFW(vasp_input_params=vasp_input_params,
-                         parents=optimize_fw,
-                         in_custodian=in_custodian,
-                         spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
