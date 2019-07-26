@@ -138,12 +138,8 @@ class SlabOptimizeSet(DictSet):
         self.selective_dynamics = None
         if user_slab_settings is not None:
             try:
-                self.fix_slab_bulk(
-                    thickness=user_slab_settings["thickness"],
-                    method=user_slab_settings.get("method", "layers"),
-                    part=user_slab_settings.get("part", "center")
-                )
-            except KeyError:
+                self.fix_slab_bulk(**user_slab_settings)
+            except TypeError:
                 raise ValueError("No 'thickness' specified in user_slab_settings. "
                                  "As currently the only purpose for this argument "
                                  "is to apply selective dynamics on a slab "
