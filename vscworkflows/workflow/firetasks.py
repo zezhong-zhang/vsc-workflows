@@ -174,9 +174,12 @@ class VaspParallelizationTask(FiretaskBase):
             try:
                 number_of_cores = int(os.environ["PBS_NP"])
             except KeyError:
-                raise NotImplementedError(
-                    "This Firetask currently only supports PBS "
-                    "schedulers.")
+                try:
+                    number_of_cores = int(os.environ["SLURM_NTASKS"])
+                except KeyError:
+                    raise NotImplementedError(
+                        "The VaspParallelizationTask currently only supports "
+                        "PBS and SLURM schedulers.")
 
             kpar = self._find_kpar(number_of_kpoints, number_of_cores)
 
