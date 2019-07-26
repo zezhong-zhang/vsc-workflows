@@ -166,8 +166,10 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 
     # Update params and spec for optimization Firework
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec = {"_launch_dir": _set_up_relative_directory(directory, functional,
-                                                      "optimize")}
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "optimize"),
+         "_pass_job_info": True})
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
@@ -179,7 +181,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             fw_action=FWAction(additions=static_fw),
+                             fw_action=FWAction(additions=static_fw, update_spec={
+                                 "parent_dir": optimize_fw}),
                              spec=spec)
 
     # Set up a clear name for the workflow
