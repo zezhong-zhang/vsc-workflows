@@ -10,6 +10,7 @@ import time
 import numpy as np
 
 from quotas import QSlab
+from pybat import Cathode
 
 from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -56,11 +57,45 @@ def _find_irr_k_points(directory):
     return len(spg.get_ir_reciprocal_mesh(kpoints.kpts))
 
 
+def _find_fw_structure(firework):
+    for t in firework.spec["_tasks"]:
+        if "WriteVaspFromIOSet" in t["_fw_name"]:
+            try:
+                return t["structure"]
+            except KeyError:
+                pass
+            try:
+                print(t["vasp_input_set"])
+                return t["vasp_input_set"]["structure"]
+            except TypeError:
+                pass
+            try:
+                return _find_fw_structure(Firework.from_dict(t["parents"]))
+            except KeyError:
+                raise ValueError("Unable to extract structure from Firework.")
+
+
 def _load_structure_from_dir(directory):
+    # TODO improve this code - it's not very transparent atm
 
-    vasprun, outcar = get_vasprun_outcar(directory)
+    structure = None
 
-    return get_structure_from_prev_run(vasprun, outcar)
+    if os.path.exists(os.path.join(directory, "FW.json")):
+        fw = Firework.from_file(os.path.join(directory, "FW.json"))
+        structure = _find_fw_structure(fw)
+
+        if structure.__class__ == Structure:
+            structure = None
+        elif issubclass(structure.__class__, QSlab):
+            structure.update_sites(directory)
+        elif issubclass(structure.__class__, Cathode):
+            structure.update_sites(directory)
+
+    if structure is None:
+        vasprun, outcar = get_vasprun_outcar(directory)
+        return get_structure_from_prev_run(vasprun, outcar)
+    else:
+        return structure
 
 
 @explicit_serialize
@@ -242,7 +277,7 @@ class WriteVaspFromIOSet(FiretaskBase):
             if you provide the full object representation of a VaspInputSet rather
             than a String.
 
-    """ # TODO Update docstring
+    """  # TODO Update docstring
     required_params = ["vasp_input_set"]
     optional_params = ["structure", "parent", "vasp_input_params"]
 

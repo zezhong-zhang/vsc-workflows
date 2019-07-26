@@ -272,6 +272,7 @@ class SlabOptimizeFW(Firework):
 
         # Set up the input files of the calculation
         tasks.append(WriteVaspFromIOSet(
+            structure=slab,
             vasp_input_set=SlabOptimizeSet(structure=slab,
                                            user_slab_settings=user_slab_settings,
                                            **vasp_input_params)
@@ -295,7 +296,7 @@ class SlabOptimizeFW(Firework):
 
 class SlabDosFW(Firework):
 
-    def __init__(self, slab, name="Slab optimize", vasp_input_params=None,
+    def __init__(self, slab=None, name="Slab optimize", vasp_input_params=None,
                  parents=None, in_custodian=False, spec=None):
         """
         DOS calculation of a slab.
@@ -316,12 +317,22 @@ class SlabDosFW(Firework):
         """
         tasks = list()
 
-        # Set up the input files of the low precision static calculation
-        tasks.append(WriteVaspFromIOSet(
-            vasp_input_set=SlabStaticSet(
-                structure=slab,
-                user_incar_settings={"LCHARG": True}
-            )))
+        if slab is not None:
+            # Set up the input files of the low precision static calculation
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set=SlabStaticSet(
+                    structure=slab,
+                    user_incar_settings={"LCHARG": True}
+                )))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parent=parents,
+                vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
+                vasp_input_params={"user_incar_settings": {"LCHARG": True}}
+            ))
+        else:
+            raise ValueError("You must provide either an input structure or "
+                             "parent firework to StaticFW!")
 
         # Create the PyTask that runs the calculation
         if in_custodian:
@@ -345,10 +356,19 @@ class SlabDosFW(Firework):
             else:
                 dos_input_params[k] = v
 
-        # Set up the input files of the calculation
-        tasks.append(WriteVaspFromIOSet(
-            vasp_input_set=SlabStaticSet(structure=slab, **dos_input_params)
-        ))
+        if slab is not None:
+            # Set up the input files of the low precision static calculation
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set=SlabStaticSet(
+                    structure=slab,
+                    **dos_input_params
+                )))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parent=parents,
+                vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
+                vasp_input_params=dos_input_params
+            ))
 
         # Create the PyTask that runs the calculation
         if in_custodian:

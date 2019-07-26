@@ -132,6 +132,7 @@ class SlabOptimizeSet(DictSet):
                     "SYMPREC": 1e-8}
 
         self._config_dict["INCAR"].update(defaults)
+        self.kwargs = kwargs
         self.k_resolution = k_resolution
         self.user_slab_settings = user_slab_settings
         self.selective_dynamics = None
@@ -144,7 +145,7 @@ class SlabOptimizeSet(DictSet):
                                  "is to apply selective dynamics on a slab "
                                  "geometry optimization, this key must be assigned "
                                  "a value")
-        self.kwargs = kwargs
+
 
     def fix_slab_bulk(self, thickness, method="layers", part="center"):
         """
