@@ -216,9 +216,14 @@ class WriteVaspFromIOSet(FiretaskBase):
     Create VASP input files using implementations of pymatgen's AbstractVaspInputSet.
     An input set can be provided as an object or as a String/parameter combo.
 
-    Note: Even though both 'structure' and 'parent' are optional parameters,
-    at least one of them must be set! Else the Firetask will not have a geometry
-    to set up the calculation for.
+    Notes: 
+        - If a full initialized AbstractVaspInputSet is passed for the 
+        vasp_input_set argrument, the optional arguments are not necessary and 
+        hence ignored. Make sure that you've passed the preferred 
+        vasp_input_params to the AbstractVaspInputSet.
+        - Even though both 'structure' and 'parent' are optional parameters, 
+        at least one of them must be set. Else the Firetask will not have a 
+        geometry to set up the calculation for.
 
     Required params:
         vasp_input_set (AbstractVaspInputSet or str): Either a VaspInputSet object

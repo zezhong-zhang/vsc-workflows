@@ -65,7 +65,7 @@ class BulkStaticSet(DictSet):
             return super().kpoints
 
 
-class BulkRelaxSet(DictSet):
+class BulkOptimizeSet(DictSet):
     """
     VASP input set for the bulk geometry optimization.
 
@@ -73,7 +73,7 @@ class BulkRelaxSet(DictSet):
     CONFIG = _load_yaml_config("relaxSet")
 
     def __init__(self, structure, **kwargs):
-        super().__init__(structure, BulkRelaxSet.CONFIG, **kwargs)
+        super().__init__(structure, BulkOptimizeSet.CONFIG, **kwargs)
         self.kwargs = kwargs
 
 
@@ -143,7 +143,7 @@ class SlabStaticSet(DictSet):
     #                                **kwargs)
 
 
-class SlabRelaxSet(DictSet):
+class SlabOptimizeSet(DictSet):
     """
     A VASP input set that is used to optimize a slab structure.
 
@@ -151,9 +151,10 @@ class SlabRelaxSet(DictSet):
 
     CONFIG = _load_yaml_config("relaxSet")
 
-    def __init__(self, structure, k_resolution=0.2, **kwargs):
+    def __init__(self, structure, k_resolution=0.2, user_slab_settings=None,
+                 **kwargs):
         super().__init__(structure=structure,
-                         config_dict=SlabRelaxSet.CONFIG,
+                         config_dict=SlabOptimizeSet.CONFIG,
                          **kwargs)
 
         # Defaults for a slab optimization
@@ -161,7 +162,21 @@ class SlabRelaxSet(DictSet):
 
         self._config_dict["INCAR"].update(defaults)
         self.k_resolution = k_resolution
+        self.user_slab_settings = user_slab_settings
         self.selective_dynamics = None
+        if user_slab_settings is not None:
+            try:
+                self.fix_slab_bulk(
+                    thickness=user_slab_settings["thickness"],
+                    method=user_slab_settings.get("method", "layers"),
+                    part=user_slab_settings.get("part", "center")
+                )
+            except KeyError:
+                raise ValueError("No 'thickness' specified in user_slab_settings. "
+                                 "As currently the only purpose for this argument "
+                                 "is to apply selective dynamics on a slab "
+                                 "geometry optimization, this key must be assigned "
+                                 "a value")
         self.kwargs = kwargs
 
     def fix_slab_bulk(self, thickness, method="layers", part="center"):
