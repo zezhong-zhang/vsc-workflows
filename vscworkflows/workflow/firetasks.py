@@ -63,7 +63,7 @@ def _find_fw_structure(firework):
             try:
                 return t["structure"]
             except KeyError:
-                return _find_original_fw_structure(Firework.from_dict(t["parent"]))
+                return _find_fw_structure(Firework.from_dict(t["parent"]))
 
 
 def _load_structure_from_dir(directory):
