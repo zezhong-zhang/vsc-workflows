@@ -38,9 +38,8 @@ class BulkStaticSet(DictSet):
     """
     CONFIG = _load_yaml_config("staticSet")
 
-    def __init__(self, structure, k_resolution=None, **kwargs):
+    def __init__(self, structure, **kwargs):
         super().__init__(structure, BulkStaticSet.CONFIG, **kwargs)
-        self.k_resolution = k_resolution
         self.kwargs = kwargs
 
     @property
@@ -52,15 +51,15 @@ class BulkStaticSet(DictSet):
             :class: pymatgen.io.vasp.inputs.Kpoints
 
         """
-        if self.k_resolution is not None:
+        settings = self.user_kpoints_settings or self._config_dict["KPOINTS"]
+
+        if "k_resolution" in settings:
             # Use k_resolution to calculate kpoints
-            kpt_divisions = [round(l / self.k_resolution + 0.5) for l in
+            k_kpoint_resolution = settings["k_resolution"]
+            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
 
-            kpoints = Kpoints.gamma_automatic(kpts=kpt_divisions)
-
-            return kpoints
-
+            return Kpoints.gamma_automatic(kpts=kpt_divisions)
         else:
             return super().kpoints
 
