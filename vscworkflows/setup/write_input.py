@@ -9,7 +9,7 @@ from monty.serialization import loadfn
 from pymatgen import Structure
 from quotas import QSlab
 
-from vscworkflows.setup.sets import BulkStaticSet, BulkRelaxSet, SlabRelaxSet, \
+from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, SlabOptimizeSet, \
     SlabStaticSet
 
 """
@@ -123,8 +123,8 @@ def optimize(structure, directory="", functional=("pbe", {}),
 
     # Set up the geometry optimization
     calculation = _set_up_calculation(
-        BulkRelaxSet(structure=structure, user_incar_settings=user_incar_settings,
-                     potcar_functional=DFT_FUNCTIONAL),
+        BulkOptimizeSet(structure=structure, user_incar_settings=user_incar_settings,
+                        potcar_functional=DFT_FUNCTIONAL),
         functional=functional
     )
     # Write the setup files to the geometry optimization directory
@@ -242,9 +242,9 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
         user_incar_settings.update({"ISMEAR": 2, "SIGMA": 0.2})
 
     calculation = _set_up_calculation(
-        SlabRelaxSet(structure=slab,
-                     user_incar_settings=user_incar_settings,
-                     potcar_functional=DFT_FUNCTIONAL),
+        SlabOptimizeSet(structure=slab,
+                        user_incar_settings=user_incar_settings,
+                        potcar_functional=DFT_FUNCTIONAL),
         functional=functional
     )
 

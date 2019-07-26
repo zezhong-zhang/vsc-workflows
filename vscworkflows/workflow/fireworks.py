@@ -6,12 +6,11 @@ import os
 
 from fireworks import PyTask, Firework
 
-from atomate.vasp.firetasks import WriteVaspFromIOSet
-
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
     VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
     PulayTask, WriteVaspFromIOSet
-from vscworkflows.setup.sets import BulkRelaxSet, BulkStaticSet
+from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
+    SlabStaticSet, SlabOptimizeSet
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -99,13 +98,11 @@ class OptimizeFW(Firework):
 
         """
         tasks = list()
-
         vasp_input_params = vasp_input_params or {}
-        spec = spec if spec is not None else {}
 
         tasks.append(WriteVaspFromIOSet(
             structure=structure,
-            vasp_input_set=BulkRelaxSet(structure, **vasp_input_params)
+            vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
         ))
 
         # Configure the parallelization settings
@@ -147,6 +144,8 @@ class OpticsFW(StaticFW):
                 the geometry optimization.
 
         """
+        vasp_input_params = vasp_input_params or {}
+
         # Default input parameters
         optics_input_params = {
             "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6},
@@ -164,153 +163,159 @@ class OpticsFW(StaticFW):
                          in_custodian=in_custodian, spec=spec)
 
 
+class SlabStaticFW(Firework):
+
+    def __init__(self, slab, name="Slab Static", vasp_input_params=None,
+                 parents=None, in_custodian=False, spec=None):
+        """
+        #TODO
+
+        Args:
+            slab: quotas.QSlab OR path to slab structure file for which to run
+            the DOS calculation.
+
+        calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
+            determine the work function.
+        in_custodian (bool): Flag that indicates whether the calculation should be
+            run inside a Custodian.
+
+
+        """
+        tasks = list()
+        vasp_input_params = vasp_input_params or {}
+
+        if slab is not None:
+            tasks.append(WriteVaspFromIOSet(
+                structure=slab,
+                vasp_input_set=SlabStaticSet(slab, **vasp_input_params)
+            ))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parent=parents,
+                vasp_input_set="vscworkflows.setup.sets.SlabStaticSet"
+            ))
+        else:
+            raise ValueError("You must provide either an input structure or "
+                             "parent firework to SlabStaticFW!")
+
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask())
+
+        # Create the PyTask that runs the calculation
+        if in_custodian:
+            tasks.append(CustodianTask())
+        else:
+            tasks.append(VaspTask())
+
+        # Write the final slab to a json file for subsequent calculations
+        # tasks.append(VaspWriteFinalSlabTask(directory=directory)) # TODO
+
+        super().__init__(tasks=tasks,
+                         name=name,
+                         spec=spec)
+
+
 class SlabOptimizeFW(Firework):
 
-    def __init__(self, slab, directory, functional, fix_part,
-                 fix_thickness, is_metal=False,
-                 in_custodian=False, number_nodes=None):
+    def __init__(self, slab, name="Slab optimize", vasp_input_params=None,
+                 user_slab_settings=None, parents=None, in_custodian=False,
+                 spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
         Args:
             slab: quotas.QSlab OR path to slab structure file for which to run
                 the geometry optimization.
-            directory (str): Directory in which the geometry optimization should be
-                performed.
-            functional (tuple): Tuple with the functional choices. The first element
-                contains a string that indicates the functional used ("pbe", "hse", ...),
-                whereas the second element contains a dictionary that allows the user
-                to specify the various functional tags.
-            fix_part (str): Which part of the slab to fix. Currently only allows for
-                "center".
-            fix_thickness (int): The thickness of the fixed part of the slab, expressed in
-                number of layers.
-            is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian to second order
-                Methfessel-Paxton of 0.2 eV.
-            in_custodian (bool): Flag that indicates whether the calculation should be
-                run inside a Custodian.
-            number_nodes (int): Number of nodes that should be used for the calculations.
-                Is required to add the proper `_category` to the Firework generated, so
-                it is picked up by the right Fireworker.
 
-        """
+
+        """  # TODO Add intuitive way of including kpoint settings
         tasks = list()
+        vasp_input_params = vasp_input_params or {}
 
         # Set up the input files of the calculation
-        tasks.append(
-            PyTask(func="vscworkflows.setup.write_input.slab_optimize",
-                   kwargs={"slab": slab,
-                           "fix_part": fix_part,
-                           "fix_thickness": fix_thickness,
-                           "directory": directory,
-                           "functional": functional,
-                           "is_metal": is_metal})
-        )
+        tasks.append(WriteVaspFromIOSet(
+            vasp_input_set=SlabOptimizeSet(structure=slab,
+                                           user_slab_settings=user_slab_settings,
+                                           **vasp_input_params)
+        ))
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask(directory=directory))
+        tasks.append(VaspParallelizationTask())
 
         # Run the calculation
         if in_custodian:
-            tasks.append(CustodianTask(directory=directory))
+            tasks.append(CustodianTask())
         else:
-            tasks.append(VaspTask(directory=directory))
+            tasks.append(VaspTask())
 
         # Write the final slab to a json file for subsequent calculations
-        tasks.append(VaspWriteFinalSlabTask(directory=directory))
-
-        # Only add number of nodes to spec if specified
-        firework_spec = {}
-        if number_nodes is None or number_nodes == 0:
-            firework_spec.update({"_category": "none"})
-        else:
-            firework_spec.update({"_category": str(number_nodes) + "nodes"})
+        # tasks.append(VaspWriteFinalSlabTask()) # TODO
 
         # Combine the FireTasks into one FireWork
-        super().__init__(tasks=tasks,
-                         name="Geometry optimization",
-                         spec=firework_spec)
+        super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
 
 
 class SlabDosFW(Firework):
 
-    def __init__(self, slab, directory, functional, k_resolution=0.1,
-                 calculate_locpot=False, in_custodian=False,
-                 number_nodes=None):
+    def __init__(self, slab, name="Slab optimize", vasp_input_params=None,
+                 parents=None, in_custodian=False, spec=None):
         """
         Firework for calculating the DOS and work function of a slab.
 
         Args:
             slab: quotas.QSlab OR path to slab structure file for which to run
             the DOS calculation.
-        directory (str): Directory in which the geometry optimization should be
-            performed.
-        functional (tuple): Tuple with the functional choices. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
-            whereas the second element contains a dictionary that allows the user to
-            specify the various functional tags.
-        k_resolution (float): Resolution of the k-mesh, i.e. distance between two
-            k-points along each reciprocal lattice vector. Note that for a slab
-            calculation we always only consider one point in the c-direction.
+
         calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
             determine the work function.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
-        number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+
 
         """
         tasks = list()
 
-        # Set up the DOS calculation, based on the structure found from the
-        # geometry optimization.
-        tasks.append(
-            PyTask(func="vscworkflows.setup.write_input.slab_dos",
-                   kwargs={
-                       "slab": slab,
-                       "directory": directory,
-                       "functional": functional,
-                       "k_resolution": k_resolution * 3,
-                       "calculate_locpot": False,
-                       "user_incar_settings": {"LCHARG": True, "EDIFF": 1e-3}
-                   })
-        )
+        # Set up the input files of the low precision static calculation
+        tasks.append(WriteVaspFromIOSet(
+            vasp_input_set=SlabStaticSet(
+                structure=slab,
+                user_incar_settings={"LCHARG": True}
+        )))
 
         # Create the PyTask that runs the calculation
         if in_custodian:
-            tasks.append(CustodianTask(directory=directory))
+            tasks.append(CustodianTask())
         else:
-            tasks.append(VaspTask(directory=directory))
+            tasks.append(VaspTask())
 
-        tasks.append(
-            PyTask(func="vscworkflows.setup.write_input.slab_dos",
-                   kwargs={
-                       "slab": slab,
-                       "directory": directory,
-                       "functional": functional,
-                       "k_resolution": k_resolution,
-                       "calculate_locpot": calculate_locpot,
-                       "user_incar_settings": {"ICHARG": 1}
-                   })
-        )
+        # Default input parameters
+        dos_input_params = {
+            "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000,
+                                    "EDIFF": 1.0e-6},
+            "user_kpoints_settings": {"reciprocal_density": 200}
+        }
+
+        # Update the defaults with the user specified input parameters
+        vasp_input_params = vasp_input_params or {}
+
+        for k, v in vasp_input_params.items():
+            if k in dos_input_params.keys():
+                dos_input_params[k].update(v)
+            else:
+                dos_input_params[k] = v
+
+        # Set up the input files of the calculation
+        tasks.append(WriteVaspFromIOSet(
+            vasp_input_set=SlabStaticSet(structure=slab, **dos_input_params)
+        ))
+
         # Create the PyTask that runs the calculation
         if in_custodian:
-            tasks.append(CustodianTask(directory=directory))
+            tasks.append(CustodianTask())
         else:
-            tasks.append(VaspTask(directory=directory))
+            tasks.append(VaspTask())
 
         # Write the final slab to a json file for subsequent calculations
-        tasks.append(VaspWriteFinalSlabTask(directory=directory))
+        # tasks.append(VaspWriteFinalSlabTask()) # TODO
 
-        # Only add number of nodes to spec if specified
-        firework_spec = {}
-        if number_nodes is None or number_nodes == 0:
-            firework_spec.update({"_category": "none"})
-        else:
-            firework_spec.update({"_category": str(number_nodes) + "nodes"})
-
-        super().__init__(tasks=tasks,
-                         name="DOS Calculation",
-                         spec=firework_spec)
+        super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
