@@ -155,7 +155,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     else:
         spec = {}
 
-    # -> Set up the static calcu
+    # -> Set up the static calculation
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
     spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
                                                            "static")})
