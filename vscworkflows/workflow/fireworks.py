@@ -79,7 +79,7 @@ class StaticFW(Firework):
 
         # Combine the two FireTasks into one FireWork
         super().__init__(
-            tasks=tasks, name=name, spec=spec
+            tasks=tasks, parents=parents, name=name, spec=spec
         )
 
 
