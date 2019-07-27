@@ -155,16 +155,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     else:
         spec = {}
 
-    # -> Set up the static calculation
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
-                                                           "static")})
-    # Set up the static Firework
-    static_fw = StaticFW(vasp_input_params=vasp_input_params,
-                         in_custodian=in_custodian,
-                         spec=spec)
-
-    # Update params and spec for optimization Firework
+    # --> Set up the geometry optimization
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
     spec.update(
         {"_launch_dir": _set_up_relative_directory(directory, functional,
@@ -181,16 +172,24 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             fw_action=FWAction(additions=static_fw),
                              spec=spec)
+
+    # -> Set up the static calculation
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                           "static")})
+    # Set up the static Firework
+    static_fw = StaticFW(vasp_input_params=vasp_input_params,
+                         parents=optimize_fw,
+                         in_custodian=in_custodian,
+                         spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[optimize_fw],
-                    links_dict={optimize_fw: [static_fw]},
+    return Workflow(fireworks=[optimize_fw, static_fw],
                     name=workflow_name)
 
 
