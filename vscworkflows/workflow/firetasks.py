@@ -382,7 +382,7 @@ class PulayTask(FiretaskBase):
             is performed starting from the final geometry.
 
     """
-    option_params = ["directory", "in_custodian", "tolerance", "fw_action"]
+    option_params = ["directory", "in_custodian", "tolerance"]
 
     # Standard tolerance for deciding to perform another geometry optimization.
     # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the
@@ -396,7 +396,6 @@ class PulayTask(FiretaskBase):
         directory = self.get("directory", os.getcwd())
         in_custodian = self.get("in_custodian", False)
         tolerance = self.get("tolerance", PulayTask.pulay_tolerance)
-        fw_action = self.get('fw_action', {})
 
         # Check if the lattice vectors have changed significantly
         initial_structure = Structure.from_file(
@@ -434,8 +433,7 @@ class PulayTask(FiretaskBase):
 
             # Create the PyTask that check the Pulay stresses again
             pulay_task = PulayTask(
-                directory=directory, in_custodian=in_custodian,
-                tolerance=tolerance, fw_action=fw_action
+                directory=directory, in_custodian=in_custodian, tolerance=tolerance
             )
 
             # Combine the two FireTasks into one FireWork
