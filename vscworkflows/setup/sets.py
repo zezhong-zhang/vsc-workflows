@@ -4,8 +4,6 @@
 
 import os
 
-from quotas import QSlab
-
 from monty.serialization import loadfn
 from pymatgen.io.vasp.inputs import Poscar, Kpoints
 from pymatgen.io.vasp.sets import DictSet
@@ -31,6 +29,31 @@ def _load_yaml_config(fname):
     return config
 
 
+def _set_structure_incar_settings(structure, config_dict):
+    """
+    Set up the default VASP INCAR settings based on the structure.
+
+    Args:
+        structure (Structure): Input geometry.
+
+    Returns:
+        dict: dictionary with the standard vasp input parameters.
+
+    """
+    # Check if a magnetic moment was provided for the sites. If so, perform a
+    # spin-polarized calculation
+    if "magmom" in structure.site_properties.keys():
+        config_dict["INCAR"].update({"ISPIN": 2, "MAGMOM": True})
+
+        # TODO Add non-collinear functionality
+
+    # Adjust the projector-evaluation scheme to Auto for large unit cells (+20 atoms)
+    if len(structure) > 20:
+        config_dict["INCAR"].update({"LREAL": "Auto"})
+
+    return config_dict
+
+
 class BulkStaticSet(DictSet):
     """
     VASP input set for a bulk static calculation.
@@ -39,7 +62,10 @@ class BulkStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, **kwargs):
-        super().__init__(structure, BulkStaticSet.CONFIG, **kwargs)
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=BulkStaticSet.CONFIG
+        )
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
 
     @property
@@ -145,7 +171,6 @@ class SlabOptimizeSet(DictSet):
                                  "is to apply selective dynamics on a slab "
                                  "geometry optimization, this key must be assigned "
                                  "a value")
-
 
     def fix_slab_bulk(self, thickness, method="layers", part="center"):
         """
