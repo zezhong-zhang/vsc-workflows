@@ -3,9 +3,10 @@
 # Distributed under the terms of the MIT License
 
 import os
-from pymatgen.io.vasp.inputs import Kpoints
+
 from fireworks import Workflow, FWAction
 from monty.serialization import loadfn
+
 from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
 
@@ -22,7 +23,7 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 MODULE_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../setup/set_configs"
+    os.path.dirname(os.path.abspath(__file__)), "../setup/set_cØonfigs"
 )
 
 
@@ -54,7 +55,6 @@ def _set_up_vasp_input_params(structure, functional):
     Returns:
 
     """
-
     vasp_input_params = {"user_incar_settings": {}}
 
     # Check if a magnetic moment was provided for the sites. If so, perform a
@@ -84,7 +84,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
-        directory (str): Directory in which the geometry optimization should be performed.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -130,7 +131,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 def get_wf_energy(structure, directory, functional=("pbe", {}),
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
-    Set up a geometry optimization workflow for a bulk structure.
+    Set up an accurate energy workflow for a bulk structure. Starts by optimizing
+    the geometry and then does a static calculation.
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
