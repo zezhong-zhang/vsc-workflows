@@ -58,15 +58,14 @@ def _find_irr_k_points(directory):
 
 
 def _find_fw_structure(firework):
-    for t in firework.spec["_tasks"]:
+    for t in firework.tasks:
         if "WriteVaspFromIOSet" in t["_fw_name"]:
             try:
                 return t["structure"]
             except KeyError:
                 pass
             try:
-                print(t["vasp_input_set"])
-                return t["vasp_input_set"]["structure"]
+                return t["vasp_input_set"].structure
             except TypeError:
                 pass
             try:

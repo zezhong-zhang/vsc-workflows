@@ -114,7 +114,7 @@ class OptimizeFW(Firework):
         vasp_input_params = vasp_input_params or {}
 
         tasks.append(WriteVaspFromIOSet(
-            structure=structure,
+            #structure=structure,
             vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
         ))
 
