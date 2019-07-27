@@ -58,15 +58,14 @@ def _find_irr_k_points(directory):
 
 
 def _find_fw_structure(firework):
-    for t in firework.spec["_tasks"]:
+    for t in firework.tasks:
         if "WriteVaspFromIOSet" in t["_fw_name"]:
             try:
                 return t["structure"]
             except KeyError:
                 pass
             try:
-                print(t["vasp_input_set"])
-                return t["vasp_input_set"]["structure"]
+                return t["vasp_input_set"].structure
             except TypeError:
                 pass
             try:
@@ -411,15 +410,7 @@ class PulayTask(FiretaskBase):
             initial_structure.lattice.matrix - final_structure.lattice.matrix
         )
 
-        # If the difference is small, return an empty FWAction
-        if sum_differences < tolerance:
-            if fw_action:
-                return FWAction.from_dict(fw_action)
-            else:
-                return FWAction()
-
-        # Else, set up another geometry optimization
-        else:
+        if sum_differences > tolerance:
             print("Lattice vectors have changed significantly during geometry "
                   "optimization. Performing another full geometry optimization to "
                   "make sure there were no Pulay stresses present.\n\n")
@@ -453,4 +444,4 @@ class PulayTask(FiretaskBase):
                                    name="Pulay Step",
                                    spec=fw_spec)
 
-            return FWAction(additions=optimize_fw)
+            return FWAction(detours=optimize_fw)

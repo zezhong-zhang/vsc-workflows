@@ -3,9 +3,10 @@
 # Distributed under the terms of the MIT License
 
 import os
-from pymatgen.io.vasp.inputs import Kpoints
+
 from fireworks import Workflow, FWAction
 from monty.serialization import loadfn
+
 from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
 
@@ -22,7 +23,7 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 MODULE_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../setup/set_configs"
+    os.path.dirname(os.path.abspath(__file__)), "../setup/set_cØonfigs"
 )
 
 
@@ -54,7 +55,6 @@ def _set_up_vasp_input_params(structure, functional):
     Returns:
 
     """
-
     vasp_input_params = {"user_incar_settings": {}}
 
     # Check if a magnetic moment was provided for the sites. If so, perform a
@@ -84,7 +84,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
-        directory (str): Directory in which the geometry optimization should be performed.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -130,7 +131,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 def get_wf_energy(structure, directory, functional=("pbe", {}),
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
-    Set up a geometry optimization workflow for a bulk structure.
+    Set up an accurate energy workflow for a bulk structure. Starts by optimizing
+    the geometry and then does a static calculation.
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
@@ -155,16 +157,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     else:
         spec = {}
 
-    # -> Set up the static calcu
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
-                                                           "static")})
-    # Set up the static Firework
-    static_fw = StaticFW(vasp_input_params=vasp_input_params,
-                         in_custodian=in_custodian,
-                         spec=spec)
-
-    # Update params and spec for optimization Firework
+    # --> Set up the geometry optimization
     vasp_input_params = _set_up_vasp_input_params(structure, functional)
     spec.update(
         {"_launch_dir": _set_up_relative_directory(directory, functional,
@@ -181,16 +174,24 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              in_custodian=in_custodian,
-                             fw_action=FWAction(additions=static_fw),
                              spec=spec)
+
+    # -> Set up the static calculation
+    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                           "static")})
+    # Set up the static Firework
+    static_fw = StaticFW(vasp_input_params=vasp_input_params,
+                         parents=optimize_fw,
+                         in_custodian=in_custodian,
+                         spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[optimize_fw],
-                    links_dict={optimize_fw: [static_fw]},
+    return Workflow(fireworks=[optimize_fw, static_fw],
                     name=workflow_name)
 
 
