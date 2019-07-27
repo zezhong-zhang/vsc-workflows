@@ -410,12 +410,7 @@ class PulayTask(FiretaskBase):
             initial_structure.lattice.matrix - final_structure.lattice.matrix
         )
 
-        # If the difference is small, return an empty FWAction
-        if sum_differences < tolerance:
-            pass
-
-        # Else, set up another geometry optimization
-        else:
+        if sum_differences > tolerance:
             print("Lattice vectors have changed significantly during geometry "
                   "optimization. Performing another full geometry optimization to "
                   "make sure there were no Pulay stresses present.\n\n")
@@ -449,4 +444,4 @@ class PulayTask(FiretaskBase):
                                    name="Pulay Step",
                                    spec=fw_spec)
 
-            return FWAction(additions=optimize_fw)
+            return FWAction(detours=optimize_fw)
