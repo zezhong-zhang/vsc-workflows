@@ -7,8 +7,7 @@ import os, warnings
 from fireworks import PyTask, Firework
 
 from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
-    VaspWriteFinalStructureTask, VaspWriteFinalSlabTask, VaspParallelizationTask, \
-    PulayTask, WriteVaspFromIOSet
+    VaspParallelizationTask, PulayTask, WriteVaspFromIOSet
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
     SlabStaticSet, SlabOptimizeSet
 
@@ -57,7 +56,6 @@ class StaticFW(Firework):
 
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
-                structure=structure,
                 vasp_input_set=BulkStaticSet(structure, **vasp_input_params)
             ))
         elif parents is not None:  # TODO What if multiple parents?
@@ -114,7 +112,6 @@ class OptimizeFW(Firework):
         vasp_input_params = vasp_input_params or {}
 
         tasks.append(WriteVaspFromIOSet(
-            #structure=structure,
             vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
         ))
 
@@ -212,7 +209,6 @@ class SlabStaticFW(Firework):
 
         if slab is not None:
             tasks.append(WriteVaspFromIOSet(
-                structure=slab,
                 vasp_input_set=SlabStaticSet(slab, **vasp_input_params)
             ))
         elif parents is not None:  # TODO What if multiple parents?
@@ -273,7 +269,6 @@ class SlabOptimizeFW(Firework):
 
         # Set up the input files of the calculation
         tasks.append(WriteVaspFromIOSet(
-            structure=slab,
             vasp_input_set=SlabOptimizeSet(structure=slab,
                                            user_slab_settings=user_slab_settings,
                                            **vasp_input_params)
