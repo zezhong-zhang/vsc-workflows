@@ -23,7 +23,7 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 MODULE_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../setup/set_cØonfigs"
+    os.path.dirname(os.path.abspath(__file__)), "../setup/set_configs"
 )
 
 
@@ -49,10 +49,14 @@ def _set_up_vasp_input_params(structure, functional):
     Set up the vasp_input_params based on the functional and some other conventions.
 
     Args:
-        structure (Structure):
-        functional (tuple):
+        structure (Structure): Input geometry.
+        functional (tuple): Tuple with the functional details. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user
+            to specify the various functional tags.
 
     Returns:
+        dict: dictionary with the standard vasp input parameters.
 
     """
     vasp_input_params = {"user_incar_settings": {}}
@@ -83,7 +87,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
     Set up a geometry optimization workflow for a bulk structure.
 
     Args:
-        structure: pymatgen.Structure OR path to the structure file.
+        structure (Structure): Input Geometry.
         directory (str): Directory in which the geometry optimization should be
             performed.
         functional (tuple): Tuple with the functional details. The first element
@@ -91,8 +95,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
         is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian (0.05 eV) to second
-                order Methfessel-Paxton of 0.2 eV.
+            metal, which changes the smearing from Gaussian (0.05 eV) to second
+            order Methfessel-Paxton of 0.2 eV.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
@@ -135,8 +139,9 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     the geometry and then does a static calculation.
 
     Args:
-        structure: pymatgen.Structure OR path to the structure file.
-        directory (str): Directory in which the geometry optimization should be performed.
+        structure (Structure): Input geometry.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -198,11 +203,13 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
-    Set up a geometry optimization workflow.
+    Set up a workflow with a singular firework to calculate the frequency
+    dependent dielectric matrix.
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
-        directory (str): Directory in which the optics calculation should be performed.
+        directory (str): Directory in which the optics calculation should be
+            performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
