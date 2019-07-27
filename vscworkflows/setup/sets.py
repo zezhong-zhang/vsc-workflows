@@ -63,7 +63,7 @@ class BulkStaticSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=BulkStaticSet.CONFIG
+            structure=structure, config_dict=self.__class__.CONFIG
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
@@ -98,7 +98,10 @@ class BulkOptimizeSet(DictSet):
     CONFIG = _load_yaml_config("relaxSet")
 
     def __init__(self, structure, **kwargs):
-        super().__init__(structure, BulkOptimizeSet.CONFIG, **kwargs)
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=self.__class__.CONFIG
+        )
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
 
 
@@ -106,9 +109,11 @@ class SlabStaticSet(DictSet):
     CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, k_resolution=0.1, **kwargs):
-        super().__init__(structure=structure,
-                         config_dict=SlabStaticSet.CONFIG,
-                         **kwargs)
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=self.__class__.CONFIG
+        )
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
+
         # Default settings for a static slab calculation
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001, "ISMEAR": 0,
                     "SIGMA": 0.01, "SYMPREC": 1e-8}
@@ -149,9 +154,10 @@ class SlabOptimizeSet(DictSet):
 
     def __init__(self, structure, k_resolution=0.2, user_slab_settings=None,
                  **kwargs):
-        super().__init__(structure=structure,
-                         config_dict=SlabOptimizeSet.CONFIG,
-                         **kwargs)
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=self.__class__.CONFIG
+        )
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
         # Defaults for a slab optimization
         defaults = {"ISIF": 2, "AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001,
