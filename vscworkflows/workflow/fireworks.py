@@ -290,7 +290,7 @@ class SlabOptimizeFW(Firework):
 
 class SlabDosFW(Firework):
 
-    def __init__(self, slab=None, name="Slab optimize", vasp_input_params=None,
+    def __init__(self, slab=None, name="Slab DOS", vasp_input_params=None,
                  parents=None, in_custodian=False, spec=None):
         """
         DOS calculation of a slab.
