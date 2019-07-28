@@ -44,12 +44,11 @@ def _set_up_relative_directory(directory, functional, calculation):
     return directory
 
 
-def _set_up_vasp_input_params(structure, functional):
+def _set_up_functional_params(functional):
     """
     Set up the vasp_input_params based on the functional and some other conventions.
 
     Args:
-        structure (Structure): Input geometry.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -60,17 +59,6 @@ def _set_up_vasp_input_params(structure, functional):
 
     """
     vasp_input_params = {"user_incar_settings": {}}
-
-    # Check if a magnetic moment was provided for the sites. If so, perform a
-    # spin-polarized calculation
-    if "magmom" in structure.site_properties.keys():
-        vasp_input_params["user_incar_settings"].update(
-            {"ISPIN": 2, "MAGMOM": True}
-        )
-
-    # Adjust the projector-evaluation scheme to Auto for large unit cells (+20 atoms)
-    if len(structure) > 20:
-        vasp_input_params["user_incar_settings"].update({"LREAL": "Auto"})
 
     # Set up the functional
     if functional[0] != "pbe":
@@ -104,18 +92,24 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
             it is picked up by the right Fireworker.
 
     """
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec = {"_launch_dir": directory}
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
+
+    # --> Set up the geometry optimization
+    vasp_input_params = _set_up_functional_params(functional)
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "optimize"),
+         "_pass_job_info": True})
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
         vasp_input_params["user_incar_settings"].update(
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
-
-    # Add number of nodes to spec, or "none"
-    if number_nodes is not None and number_nodes != 0:
-        spec.update({"_fworker": str(number_nodes) + "nodes"})
 
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
@@ -163,7 +157,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
         spec = {}
 
     # --> Set up the geometry optimization
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    vasp_input_params = _set_up_functional_params(functional)
     spec.update(
         {"_launch_dir": _set_up_relative_directory(directory, functional,
                                                    "optimize"),
@@ -182,7 +176,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
                              spec=spec)
 
     # -> Set up the static calculation
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
+    vasp_input_params = _set_up_functional_params(functional)
     spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
                                                            "static")})
     # Set up the static Firework
@@ -203,8 +197,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
                   is_metal=False, in_custodian=False, number_nodes=None):
     """
-    Set up a workflow with a singular firework to calculate the frequency
-    dependent dielectric matrix.
+    Set up a workflow to calculate the frequency dependent dielectric matrix.
+    Starts with a geometry optimization.
 
     Args:
         structure: pymatgen.Structure OR path to the structure file.
@@ -226,10 +220,35 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             it is picked up by the right Fireworker.
 
     """
-    vasp_input_params = _set_up_vasp_input_params(structure, functional)
-    spec = {"_launch_dir": directory}
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
 
+    # 1. Set up the geometry optimization
+    vasp_input_params = _set_up_functional_params(functional)
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "optimize")})
     # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+
+    # Set up the Firework
+    optimize_fw = OptimizeFW(structure=structure,
+                             vasp_input_params=vasp_input_params,
+                             in_custodian=in_custodian,
+                             spec=spec)
+
+    # 2. Set up the optics calculation
+    vasp_input_params = _set_up_functional_params(functional)
+    spec.update({"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                           "optics")})
+
+    # For metals, use a good amount of Gaussian smearing
     if is_metal:
         vasp_input_params["user_incar_settings"].update(
             {"ISMEAR": 0, "SIGMA": 0.3}
@@ -237,10 +256,6 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         k_resolution = k_resolution or 0.05
     else:
         k_resolution = k_resolution or 0.1
-
-    # Add number of nodes to spec, or "none"
-    if number_nodes is not None and number_nodes != 0:
-        spec.update({"_fworker": str(number_nodes) + "nodes"})
 
     # Add the requested k-point resolution to the input parameters
     kpt_divisions = [round(l / k_resolution + 0.5) for l in
@@ -261,26 +276,28 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[optics_fw, ], name=workflow_name)
+    return Workflow(fireworks=[optimize_fw, optics_fw],
+                    links_dict={optimize_fw: [optics_fw]},
+                    name=workflow_name)
 
 
-def get_wf_slab_optimize(slab, directory, fix_part, fix_thickness,
-                         functional=("pbe", {}), is_metal=False, in_custodian=False,
-                         number_nodes=None):
+def get_wf_slab_optimize(slab, directory, user_slab_settings,
+                         functional=("pbe", {}), is_metal=False,
+                         in_custodian=False, number_nodes=None):
     """
     Set up a geometry optimization workflow.
 
     Args:
         slab (Qslab): Slab for which to set up the geometry optimization workflow.
-        directory (str): Directory in which the geometry optimization should be performed.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
+        user_slab_settings (dict): Allows the user to specify the selective
+                dynamics of the slab geometry optimization. These are passed to
+                the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
-        fix_part (str): Which part of the slab to fix. Currently only allows for
-                "center".
-        fix_thickness (int): The thickness of the fixed part of the slab, expressed in
-            number of layers.
         is_metal (bool): Flag that indicates whether the material for which the
             geometry optimization should be performed is metallic. Determines the
             smearing method used.
@@ -291,15 +308,25 @@ def get_wf_slab_optimize(slab, directory, fix_part, fix_thickness,
             it is picked up by the right Fireworker.
 
     """
+    vasp_input_params = _set_up_functional_params(functional)
+    spec = {"_launch_dir": directory}
+
+    # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec.update({"_fworker": str(number_nodes) + "nodes"})
+
     # Set up the geometry optimization Firework
     optimize_fw = SlabOptimizeFW(slab=slab,
-                                 directory=directory,
-                                 fix_part=fix_part,
-                                 fix_thickness=fix_thickness,
-                                 functional=functional,
-                                 is_metal=is_metal,
+                                 user_slab_settings=user_slab_settings,
+                                 vasp_input_params=vasp_input_params,
                                  in_custodian=in_custodian,
-                                 number_nodes=number_nodes)
+                                 spec=spec)
 
     # Set up a clear name for the workflow
     workflow_name = str(slab.composition.reduced_formula).replace(" ", "")
@@ -318,7 +345,8 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
 
     Args:
         slab (Qslab): Slab for which to set up the DOS workflow.
-        directory (str): Directory in which the geometry optimization should be performed.
+        directory (str): Directory in which the geometry optimization should be
+            performed.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -326,8 +354,8 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
             k-points along each reciprocal lattice vector. Note that for a slab
             calculation we always only consider one point in the c-direction.
-        calculate_locpot (bool): Whether to calculate the the local potential, e.g. to
-            determine the work function.
+        calculate_locpot (bool): Whether to calculate the the local potential,
+            e.g. to determine the work function.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
@@ -335,15 +363,32 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
             it is picked up by the right Fireworker.
 
     """
+    vasp_input_params = _set_up_functional_params(functional)
+
+    # Calculate the local potential if requested (e.g. for the work function)
+    if calculate_locpot:
+        vasp_input_params["user_incar_settings"].update(
+            {"LVTOT": True, "LVHAR": True}
+        )
+
+    spec = {"_launch_dir": directory}
+
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec.update({"_fworker": str(number_nodes) + "nodes"})
+
+    # Add the requested k-point resolution to the input parameters
+    kpt_divisions = [round(l / k_resolution + 0.5) for l in
+                     slab.lattice.reciprocal_lattice.lengths]
+
+    vasp_input_params["user_kpoints_settings"] = {"length": kpt_divisions}
+
     # Set up the geometry optimization Firework
     dos_fw = SlabDosFW(
         slab=slab,
-        directory=directory,
-        functional=functional,
-        k_resolution=k_resolution,
-        calculate_locpot=calculate_locpot,
+        vasp_input_params=vasp_input_params,
         in_custodian=in_custodian,
-        number_nodes=number_nodes
+        spec=spec
     )
 
     # Set up a clear name for the workflow
@@ -404,8 +449,6 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         directory=bulk_optimize_dir,
         is_metal=is_metal,
         in_custodian=in_custodian,
-        number_nodes=number_nodes,
-        fw_action=FWAction(additions=[bulk_optics])
     )
 
     fireworks = [bulk_optimize]
