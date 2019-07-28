@@ -23,7 +23,7 @@ __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Jun 2019"
 
 
-def launchpad(launchpad_file=None, database="base"):
+def launchpad(launchpad_file=None, lpad_name="base"):
     """
     Script to set up the configuration of the launchpad for accessing the workflow
     server.
@@ -31,7 +31,7 @@ def launchpad(launchpad_file=None, database="base"):
     Args:
         launchpad_file (str): my_launchpad.yaml file from which to load the mongoDB database
             details.
-        database (str): Name to give to the database in the configuration setup.
+        lpad_name (str): Name to give to the database in the configuration setup.
 
     Returns:
         None
@@ -58,7 +58,7 @@ def launchpad(launchpad_file=None, database="base"):
     print("Connection successful!\n")
 
     config_lpad_file = os.path.join(os.path.expanduser("~"), ".workflow_config",
-                                    "launchpad", database + "_launchpad.yaml")
+                                    "launchpad", lpad_name + "_launchpad.yaml")
     try:
         os.makedirs(
             os.path.join(os.path.expanduser("~"), ".workflow_config", "launchpad")
