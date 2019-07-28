@@ -158,7 +158,7 @@ def launchpad(launchpad_file, name):
     """
     from vscworkflows.config import launchpad
 
-    launchpad(launchpad_file=launchpad_file, database=name)
+    launchpad(launchpad_file=launchpad_file, lpad_name=name)
 
 
 @config.command(context_settings=CONTEXT_SETTINGS)
