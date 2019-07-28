@@ -193,7 +193,7 @@ def optics(structure, directory="", functional=("pbe", {}), k_resolution=0.05,
     return directory
 
 
-def slab_optimize(slab, fix_part, fix_thickness, directory="",
+def slab_optimize(slab, free_layers, optimize_both_sides=True, directory="",
                   functional=("pbe", {}), is_metal=False):
     """
     Set up a geometric optimization for a two dimensional slab.
@@ -207,10 +207,6 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags. E.g. ("hse", {"LAEXX": 0.2}).
-        fix_part (str): Which part of the slab to fix. Currently only allows for
-            "center".
-        fix_thickness (int): The thickness of the fixed part of the slab, expressed in
-            number of layers.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing from Gaussian to second order
             Methfessel-Paxton of 0.2 eV.
@@ -248,8 +244,8 @@ def slab_optimize(slab, fix_part, fix_thickness, directory="",
         functional=functional
     )
 
-    calculation.fix_slab_bulk(thickness=fix_thickness,
-                              part=fix_part)
+    calculation.fix_slab_bulk(free_layers=free_layers,
+                              optimize_both_sides=optimize_both_sides)
 
     # Write the setup files to the calculation directory
     calculation.write_input(directory)

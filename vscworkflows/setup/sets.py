@@ -2,7 +2,7 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import os
+import os, warnings
 
 from monty.serialization import loadfn
 from pymatgen.io.vasp.inputs import Poscar, Kpoints
@@ -173,82 +173,31 @@ class SlabOptimizeSet(DictSet):
                                  "As currently the only purpose for this argument "
                                  "is to apply selective dynamics on a slab "
                                  "geometry optimization, this key must be assigned "
-                                 "a value")
+                                 "a value.")
 
-    # TODO: Think over these arguments, so they are more intuitive for the user
-    def fix_slab_bulk(self, thickness, method="layers", part="center"):
+    def fix_slab_bulk(self, free_layers, optimize_both_sides=True):
         """
-        Fix atoms of the slab to represent the bulk of the material. Which atoms are
-        fixed depends on whether the user wants to fix one side or the center, and
-        how exactly the part of the slab is defined.
+        Fix atoms of the slab to represent the bulk of the material.
 
         Args:
-            thickness (float): The thickness of the fixed part of the slab,
-                expressed in number of layers or Angstroms, depending on the
-                method.
-
-            method (string): How to define the thickness of the part of the slab
-                that is fixed:
-
-                    "layers" (default): Fix a set amount of layers. The layers are
-                    found using the 'find_atomic_layers' method.
-                    "angstroms": Fix a part of the slab of a thickness defined in
-                    angstroms.
-
-            part (string): Which part of the slab to fix:
-
-                    "center" (default): Fix the atoms at the center of the slab.
+            free_layers (int): Number of free atomic layers at the surface.
+            optimize_both_sides (bool): Optimize both sides of the slab. Defaults
+                to True.
         """
+        # Set up the selective dynamics property
+        selective_dynamics = []
 
-        if method == "layers":
+        atomic_layers = self.structure.find_atomic_layers()
+        if optimize_both_sides:
+            fixed_layers = atomic_layers[free_layers:-free_layers]
+        else:
+            fixed_layers = atomic_layers[free_layers:]
 
-            atomic_layers = self.structure.find_atomic_layers()
-
-            if part == "center":
-
-                # Even number of layers
-                if len(atomic_layers) % 2 == 0:
-
-                    # Check if the user requested an odd number of layers for the
-                    # fixed part of the slab
-                    if thickness % 2 == 1:
-                        print("Found an even number of layers, but the user " +
-                              "requested an odd number of fixed layers. Adding "
-                              "one layer to the fixed part of the slab.")
-                        thickness += 1
-
-                # Odd number of layers
-                if len(atomic_layers) % 2 == 1:
-
-                    # Check if the user requested an even number of layers for the
-                    # fixed part of the slab
-                    if thickness % 2 == 0:
-                        print("Found an odd number of layers, but the user " +
-                              "requested an even number of fixed layers. Adding "
-                              "one layer to the fixed part of the slab.")
-                        thickness += 1
-
-                # Calculate the number of layers to optimize on each site
-                n_optimize_layers = int((len(atomic_layers) - thickness) / 2)
-
-                if n_optimize_layers < 5:
-                    print("WARNING: Less than 5 layers are optimized on each "
-                          "side of the slab.")  # TODO: make proper warning
-
-                # Take the fixed layers from the atomic layers of the slab
-                fixed_layers = atomic_layers[n_optimize_layers: n_optimize_layers +
-                                                                thickness]
-
-            else:
-                raise NotImplementedError("Requested part is not implemented " +
-                                          "(yet).")
-                # TODO Implement oneside
-
+        if len(fixed_layers) == 0:
+            warnings.warn("No layers fixed in 'fix_slab_bulk' method!")
+        else:
             # Combine the sites of the fixed layers into one list
             fixed_sites = [site for layer in fixed_layers for site in layer]
-
-            # Set up the selective dynamics property
-            selective_dynamics = []
 
             for site in self.structure.sites:
                 if site in fixed_sites:
@@ -256,11 +205,7 @@ class SlabOptimizeSet(DictSet):
                 else:
                     selective_dynamics.append([True, True, True])
 
-            self.selective_dynamics = selective_dynamics
-
-        else:
-            raise NotImplementedError("Requested method is not implemented (yet).")
-            # TODO Implement angstrom
+        self.selective_dynamics = selective_dynamics
 
     @property
     def poscar(self):
