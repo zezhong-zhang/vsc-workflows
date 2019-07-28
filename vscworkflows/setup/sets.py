@@ -175,6 +175,7 @@ class SlabOptimizeSet(DictSet):
                                  "geometry optimization, this key must be assigned "
                                  "a value")
 
+    # TODO: Think over these arguments, so they are more intuitive for the user
     def fix_slab_bulk(self, thickness, method="layers", part="center"):
         """
         Fix atoms of the slab to represent the bulk of the material. Which atoms are
@@ -232,7 +233,7 @@ class SlabOptimizeSet(DictSet):
 
                 if n_optimize_layers < 5:
                     print("WARNING: Less than 5 layers are optimized on each "
-                          "side of the slab.")
+                          "side of the slab.")  # TODO: make proper warning
 
                 # Take the fixed layers from the atomic layers of the slab
                 fixed_layers = atomic_layers[n_optimize_layers: n_optimize_layers +

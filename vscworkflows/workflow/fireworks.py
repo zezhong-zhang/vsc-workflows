@@ -250,6 +250,7 @@ class SlabOptimizeFW(Firework):
             user_slab_settings (dict): Allows the user to specify the selective 
                 dynamics of the slab geometry optimization. These are passed to 
                 the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
+                # TODO: improve this description
             vasp_input_params (dict): User defined input parameters for the
                 calculation. These are passed as kwargs to the VASP input set.
                 Common examples for keys of this dictionary are
