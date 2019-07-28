@@ -59,11 +59,11 @@ class BulkStaticSet(DictSet):
     VASP input set for a bulk static calculation.
 
     """
-    CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, **kwargs):
+
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=self.__class__.CONFIG
+            structure=structure, config_dict=_load_yaml_config("staticSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
@@ -95,22 +95,21 @@ class BulkOptimizeSet(DictSet):
     VASP input set for the bulk geometry optimization.
 
     """
-    CONFIG = _load_yaml_config("relaxSet")
 
     def __init__(self, structure, **kwargs):
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=self.__class__.CONFIG
+            structure=structure, config_dict=_load_yaml_config("relaxSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
 
 
 class SlabStaticSet(DictSet):
-    CONFIG = _load_yaml_config("staticSet")
 
     def __init__(self, structure, k_resolution=0.1, **kwargs):
+
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=self.__class__.CONFIG
+            structure=structure, config_dict=_load_yaml_config("staticSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
@@ -150,12 +149,10 @@ class SlabOptimizeSet(DictSet):
 
     """
 
-    CONFIG = _load_yaml_config("relaxSet")
-
     def __init__(self, structure, k_resolution=0.2, user_slab_settings=None,
                  **kwargs):
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=self.__class__.CONFIG
+            structure=structure, config_dict=_load_yaml_config("relaxSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
