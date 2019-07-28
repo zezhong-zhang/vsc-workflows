@@ -10,7 +10,8 @@ setup(
         "fireworks",
         "custodian",
         "dnspython",
-        "click"
+        "click",
+        "monty"
     ],
     entry_points='''
         [console_scripts]
