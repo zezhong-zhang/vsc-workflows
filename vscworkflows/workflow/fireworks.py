@@ -87,7 +87,7 @@ class OptimizeFW(Firework):
 
     def __init__(self, structure, name="Geometry Optimization",
                  vasp_input_params=None, parents=None, in_custodian=False,
-                 fw_action=None, spec=None):
+                 spec=None):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -102,8 +102,6 @@ class OptimizeFW(Firework):
                 parents of this Firework.
             in_custodian (bool): Flag that indicates whether the calculation should
                 be run inside a Custodian.
-            fw_action (fireworks.FWAction): FWAction to return after the final
-                PulayTask is completed.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
 
@@ -130,7 +128,6 @@ class OptimizeFW(Firework):
         # Check the Pulay stress
         tasks.append(
             PulayTask(in_custodian=in_custodian,
-                      fw_action=fw_action,
                       spec=spec)
         )
 
