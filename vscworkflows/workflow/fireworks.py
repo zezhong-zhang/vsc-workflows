@@ -329,9 +329,11 @@ class SlabDosFW(Firework):
 
         # Create the PyTask that runs the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(
+                CustodianTask(stdout_file="temp.out", stderr_file="temp.out")
+            )
         else:
-            tasks.append(VaspTask())
+            tasks.append(VaspTask(stdout_file="temp.out", stderr_file="temp.out"))
 
         # Default input parameters
         dos_input_params = {
