@@ -278,7 +278,7 @@ class WriteVaspFromIOSet(FiretaskBase):
 
     """  # TODO Update docstring
     required_params = ["vasp_input_set"]
-    optional_params = ["structure", "parent", "vasp_input_params"]
+    optional_params = ["structure", "parents", "vasp_input_params"]
 
     def run_task(self, fw_spec):
         # If a full VaspInputSet object was provided
@@ -305,8 +305,8 @@ class WriteVaspFromIOSet(FiretaskBase):
             if "structure" in self.keys():
                 input_set = input_set_cls(self["structure"],
                                           **self.get("vasp_input_params", {}))
-            elif "parent" in self.keys():
-                parent_dir = self["parent"]["spec"]["_launch_dir"]
+            elif "parents" in self.keys():
+                parent_dir = self["parents"]["spec"]["_launch_dir"]
                 structure = _load_structure_from_dir(parent_dir)
                 input_set = input_set_cls(structure,
                                           **self.get("vasp_input_params", {}))

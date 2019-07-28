@@ -60,7 +60,7 @@ class StaticFW(Firework):
             ))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
-                parent=parents,
+                parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
             ))
         else:
@@ -210,7 +210,7 @@ class SlabStaticFW(Firework):
             ))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
-                parent=parents,
+                parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet"
             ))
         else:
@@ -320,7 +320,7 @@ class SlabDosFW(Firework):
                 )))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
-                parent=parents,
+                parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
                 vasp_input_params={"user_incar_settings": {"LCHARG": True}}
             ))
@@ -361,7 +361,7 @@ class SlabDosFW(Firework):
                 )))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
-                parent=parents,
+                parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
                 vasp_input_params=dos_input_params
             ))
