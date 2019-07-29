@@ -286,34 +286,39 @@ class VaspParallelizationTask(FiretaskBase):
 @explicit_serialize
 class WriteVaspFromIOSet(FiretaskBase):
     """
-    Create VASP input files using implementations of pymatgen's AbstractVaspInputSet.
+    Create VASP input files using implementations of pymatgen's VaspInputSet.
     An input set can be provided as an object or as a String/parameter combo.
 
     Notes: 
-        - If a full initialized AbstractVaspInputSet is passed for the 
-        vasp_input_set argrument, the optional arguments are not necessary and 
-        hence ignored. Make sure that you've passed the preferred 
-        vasp_input_params to the AbstractVaspInputSet.
+        - If a full initialized VaspInputSet is passed for the vasp_input_set
+        argument, the optional arguments are not necessary and hence ignored.
+        Make sure that you've passed the preferred vasp_input_params to the
+        VaspInputSet!
         - Even though both 'structure' and 'parent' are optional parameters, 
-        at least one of them must be set. Else the Firetask will not have a 
-        geometry to set up the calculation for.
+        at least one of them must be set in case the vasp_input_set is defined as 
+        a string. Else the Firetask will not know which geometry to set up the 
+        calculation for.
 
     Required params:
-        vasp_input_set (AbstractVaspInputSet or str): Either a VaspInputSet object
-            or a string name for the VASP input set (e.g., "MPRelaxSet").
+        vasp_input_set (VaspInputSet or str): Either a VaspInputSet instance
+            or a string name for the VASP input set. Best practise is to provide 
+            the full module path (e.g. pymatgen.io.vasp.sets.MPRelaxSet). It's 
+            also possible to only provide the class name (e.g. MPRelaxSet). In 
+            this case the Task will look for the set in our list of sets and then 
+            the pymatgen sets.
 
     Optional params:
-        structure (Structure): structure
+        structure (Structure): Input geometry.
         parent (Firework): A single parent firework from which to extract the
-            final geometry, as well
-        vasp_input_params (dict): When using a string name for VASP input set, use
-            this as a dict to specify kwargs for instantiating the input set
-            parameters. For example, if you want to change the user_incar_settings,
-            you should provide: {"user_incar_settings": ...}. This setting is ignored
-            if you provide the full object representation of a VaspInputSet rather
-            than a String.
+            final geometry.
+        vasp_input_params (dict): Only when using a string name for VASP input
+            set, use this as a dict to specify kwargs for instantiating the input
+            set parameters. For example, if you want to change the
+            user_incar_settings, you should provide: {"user_incar_settings": ...}
+            This setting is ignored if you provide an instance of a VaspInputSet
+            rather than a String.
 
-    """  # TODO Update docstring
+    """
     required_params = ["vasp_input_set"]
     optional_params = ["structure", "parents", "vasp_input_params"]
 
@@ -321,6 +326,14 @@ class WriteVaspFromIOSet(FiretaskBase):
         # If a full VaspInputSet object was provided
         if hasattr(self['vasp_input_set'], 'write_input'):
             input_set = self['vasp_input_set']
+
+            # Check if the user has also provided optional params
+            if len(self.keys()) > 1:
+                warnings.warn("Vasp input set was provided as an instance of a "
+                              "VaspInputSet, however optional parameter were also "
+                              "specified. These will not be used to overwrite the "
+                              "settings specified in the VaspInputSet, and will "
+                              "hence be ignored!")
 
         # If VaspInputSet String + parameters was provided
         else:
