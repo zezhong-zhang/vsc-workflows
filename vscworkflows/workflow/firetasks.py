@@ -87,6 +87,7 @@ def _load_structure_from_dir(directory):
     Returns:
         Structure: The output geometry of the calculation. Either a Structure or
             subclass of a Structure.
+
     """
     if os.path.exists(os.path.join(directory, "FW.json")):
 
@@ -112,13 +113,16 @@ def _load_structure_from_dir(directory):
         vasprun, outcar = get_vasprun_outcar(directory)
         return get_structure_from_prev_run(vasprun, outcar)
 
+
 @explicit_serialize
 class VaspTask(FiretaskBase):
     """
-    Firetask that represents a VASP calculation run.
+    Perform a VASP calculation run.
 
-    Required params:
+    Optional params:
         directory (str): Directory in which the VASP calculation should be run.
+        stdout_file (str): File to which to direct the stdout during the run.
+        stderr_file (str): File to which to direct the stderr during the run.
 
     """
     optional_params = ["directory", "stdout_file", "stderr_file"]
@@ -144,10 +148,12 @@ class VaspTask(FiretaskBase):
 @explicit_serialize
 class CustodianTask(FiretaskBase):
     """
-    Firetask that represents a calculation run inside a Custodian.
+    Run VASP inside a Custodian.
 
-    Required params:
+    Optional params:
         directory (str): Directory in which the VASP calculation should be run.
+        stdout_file (str): File to which to direct the stdout during the run.
+        stderr_file (str): File to which to direct the stderr during the run.
 
     """
     optional_params = ["directory", "stdout_file", "stderr_file"]
@@ -179,15 +185,24 @@ class CustodianTask(FiretaskBase):
 @explicit_serialize
 class VaspParallelizationTask(FiretaskBase):
     """
-    Set up the parallelization setting for a VASP calculation. As I do not seems to be
-    able to properly figure out the number of irreducible kpoints that VASP uses based
-    on the input files, this Firetask runs the VASP calculation until the IBZKPT file
-    is created, and then reads the number of irreducible kpoints from this file.
+    Set up the parallelization setting for a VASP calculation. As I do not seem
+    to be able to properly determine the number of irreducible kpoints that VASP
+    uses based on the input files, this Firetask runs the VASP calculation until
+    the IBZKPT file is created, and then reads the number of irreducible kpoints
+    from this file.
+
+    The current parallelization scheme simply finds the integer closest to the
+    square root of the number of cores that is lower than the number of kpoints.
+    NPAR is not even used!
+    # TODO: Do proper tests for an optimal parallelization scheme
+
+    Optional params:
+        directory (str): Directory of the VASP run. If not specified, the Task
+        will run in the current directory.
+        KPAR (int): Override the KPAR value.
 
     """
-
     # TODO: Works, but the directory calling seems overkill; clean and test
-    # TODO: Do proper tests for an optimal parallelization scheme
 
     optional_params = ["directory", "KPAR"]
 
@@ -196,7 +211,7 @@ class VaspParallelizationTask(FiretaskBase):
         directory = self.get("directory", os.getcwd())
         kpar = self.get("KPAR", None)
 
-        if self.get("KPAR", None) is None:
+        if kpar is None:
 
             os.chdir(directory)
             stdout_file = self.get("stdout_file",
