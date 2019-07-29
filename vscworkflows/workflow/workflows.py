@@ -84,15 +84,16 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify additional tags.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing from Gaussian (0.05 eV) to second
             order Methfessel-Paxton of 0.2 eV.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     # Add number of nodes to spec, or "none"
@@ -134,20 +135,20 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 
     Args:
         structure (Structure): Input geometry.
-        directory (str): Directory in which the geometry optimization should be
-            performed.
+        directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
         is_metal (bool): Flag that indicates the material being studied is a
-                metal, which changes the smearing from Gaussian (0.05 eV) to second
-                order Methfessel-Paxton of 0.2 eV.
+            metal, which changes the smearing of the geometry optimization from
+            Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     # Add number of nodes to spec, or "none"
@@ -202,8 +203,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
 
     Args:
         structure (Structure): Input geometry.
-        directory (str): Directory in which the optics calculation should be
-            performed.
+        directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -211,13 +211,15 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
             k-points along each reciprocal lattice vector.
         is_metal (bool): Flag that indicates the material being studied is a
-                metal. The calculation will then use a broad Gaussian smearing of 0.3
-                eV instead of the tetrahedron method.
+            metal, which changes the smearing from Gaussian (0.05 eV) to second
+            order Methfessel-Paxton of 0.2 eV; the optics calculation will use a
+            generous gaussian smearing of 0.3 eV instead of the tetrahedron method.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     # Add number of nodes to spec, or "none"
@@ -257,11 +259,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
     else:
         k_resolution = k_resolution or 0.1
 
-    # Add the requested k-point resolution to the input parameters
-    kpt_divisions = [round(l / k_resolution + 0.5) for l in
-                     structure.lattice.reciprocal_lattice.lengths]
-
-    vasp_input_params["user_kpoints_settings"] = {"length": kpt_divisions}
+    vasp_input_params["user_kpoints_settings"] = {"k_resolution": k_resolution}
 
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(
@@ -292,20 +290,21 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
         directory (str): Directory in which the geometry optimization should be
             performed.
         user_slab_settings (dict): Allows the user to specify the selective
-                dynamics of the slab geometry optimization. These are passed to
-                the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
+            dynamics of the slab geometry optimization. These are passed to
+            the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
-        is_metal (bool): Flag that indicates whether the material for which the
-            geometry optimization should be performed is metallic. Determines the
-            smearing method used.
+        is_metal (bool): Flag that indicates the material being studied is a
+            metal, which changes the smearing of the geometry optimization from
+            Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     # Add number of nodes to spec, or "none"
@@ -340,16 +339,19 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
                     name=workflow_name)
 
 
-def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
-                    user_slab_settings=None, calculate_locpot=False,
-                    is_metal=False, in_custodian=False, number_nodes=None):
+def get_wf_slab_dos(slab, directory, user_slab_settings=None,
+                    functional=("pbe", {}), k_resolution=0.1,
+                    calculate_locpot=False, is_metal=False, in_custodian=False,
+                    number_nodes=None):
     """
     Set up a slab DOS workflow. Starts with a geometry optimization.
 
     Args:
         slab (Qslab): Slab for which to set up the DOS workflow.
-        directory (str): Directory in which the geometry optimization should be
-            performed.
+        directory (str): Directory in which the workflow should be set up.
+        user_slab_settings (dict): Allows the user to specify the selective
+            dynamics of the slab geometry optimization. These are passed to
+            the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
@@ -359,14 +361,15 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
             calculation we always only consider one point in the c-direction.
         calculate_locpot (bool): Whether to calculate the the local potential,
             e.g. to determine the work function.
-        is_metal (bool): Flag that indicates whether the material for which the
-            geometry optimization should be performed is metallic. Determines the
-            smearing method used.
-        in_custodian (bool): Flag that indicates whether the calculation should be
+        is_metal (bool): Flag that indicates the material being studied is a
+            metal, which changes the smearing of the geometry optimization from
+            Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
+        in_custodian (bool): Flag that indicates whether the calculations should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     # Add number of nodes to spec, or "none"
@@ -405,12 +408,7 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
         {"_launch_dir": _set_up_relative_directory(directory, functional,
                                                    "dos")}
     )
-
-    # Add the requested k-point resolution to the input parameters
-    kpt_divisions = [round(l / k_resolution + 0.5) for l in
-                     slab.lattice.reciprocal_lattice.lengths]
-
-    vasp_input_params["user_kpoints_settings"] = {"length": kpt_divisions}
+    vasp_input_params["user_kpoints_settings"] = {"k_resolution": k_resolution}
 
     # Set up the geometry optimization Firework
     dos_fw = SlabDosFW(
@@ -440,11 +438,40 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     function.
 
     Args:
-        bulk:
-        slab_list:
-        functional:
-        base_k_resolution:
-        number_nodes:
+        bulk (Structure): Input bulk geometry.
+        slab_list (list): A list of dictionaries that specify the slabs to be
+            included, as well as the settings to be used for each slab. Here is
+            an overview of the mandatory keys:
+
+                "slab" - Can be either a QSlab or a list/str that specifies the
+                    miller indices of the slab surface. In case only the miller
+                    indices are provided, the user must also supply the
+                    "min_slab_size" and "min_vacuum_size", which specify the
+                    minimum thickness of the slab and vacuum layer in angstrom.
+                "user_slab_settings" (dict) - Settings that will be passed to the
+                    slab optimization firework. The most important key of this
+                    dict is "free_layers", which specifies the number of
+                    surface layers to optimize.
+
+        directory (str): Directory in which the workflow should be set up.
+        functional (tuple): Tuple with the functional details. The first element
+            contains a string that indicates the functional used ("pbe", "hse", ...),
+            whereas the second element contains a dictionary that allows the user
+            to specify the various functional tags.
+        base_k_resolution (float): Resolution of the k-mesh, i.e. distance
+            between two k-points along each reciprocal lattice vector. Note that
+            for a slab calculation we always only consider one point in the
+            c-direction. # TODO Improve this
+        is_metal (bool): Flag that indicates the material being studied is a
+            metal, which changes the smearing from Gaussian (0.05 eV) to second
+            order Methfessel-Paxton of 0.2 eV; the optics calculation will use a
+            generous gaussian smearing of 0.3 eV instead of the tetrahedron method.
+        in_custodian (bool): Flag that indicates whether the calculation should be
+            run inside a Custodian.
+        number_nodes (int): Number of nodes that should be used for the calculations.
+            Is required to add the proper `_fworker` to the Firework spec, so
+            it is picked up by a Fireworker running in a job with the specified
+            number of nodes.
 
     """
     fireworks = list()
