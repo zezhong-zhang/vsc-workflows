@@ -503,7 +503,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
             if len(slab_terminations) == 1:
 
-                slab = QSlab.from_sl(slab_terminations[0])
+                slab = QSlab.from_slab(slab_terminations[0])
 
                 # Set up the directory for the slab calculations
                 slab_dir = "".join([str(c) for c in miller_index])
@@ -523,6 +523,8 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
                       "termination...")
 
                 for slab, letter in zip(slab_terminations, ascii_lowercase):
+
+                    slab = QSlab.from_slab(slab)
 
                     # Set up the directory for the slab calculations
                     slab_dir = "".join([str(c) for c in miller_index]) + "_" + letter
