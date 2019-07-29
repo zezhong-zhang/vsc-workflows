@@ -28,6 +28,11 @@ MODULE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "set_confi
 
 DFT_FUNCTIONAL = "PBE_54"
 
+# TODO: Remove module?
+# It might be time to get rid of this module, as all of its functionality has now
+# been incorporated in the WriteVaspFromIOSet. Either that or we somehow keep some
+# scripts for users that simply want to set up calculations outside of workflows.
+
 
 def _load_yaml_config(filename):
     config = loadfn(os.path.join(MODULE_DIR, "%s.yaml" % filename))
