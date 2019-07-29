@@ -187,7 +187,7 @@ class SlabOptimizeSet(DictSet):
                     "SYMPREC": 1e-8, "LREAL": "Auto"}
 
         self._config_dict["INCAR"].update(defaults)
-        self._config_dict["KPOINTS"].update({"k_resolution": 0.1})
+        self._config_dict["KPOINTS"].update({"k_resolution": 0.2})
         self.kwargs = kwargs
 
         self.user_slab_settings = user_slab_settings
