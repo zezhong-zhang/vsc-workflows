@@ -127,7 +127,7 @@ class BulkOptimizeSet(DictSet):
 
 class SlabStaticSet(DictSet):
 
-    def __init__(self, structure, k_resolution=0.1, **kwargs):
+    def __init__(self, structure, **kwargs):
 
         config_dict = _set_structure_incar_settings(
             structure=structure, config_dict=_load_yaml_config("staticSet")
@@ -139,8 +139,7 @@ class SlabStaticSet(DictSet):
                           "SIGMA": 0.05, "SYMPREC": 1e-8, "LREAL": "Auto"}
 
         self._config_dict["INCAR"].update(incar_defaults)
-        self._config_dict["KPOINTS"].update({"k_resolution": 0.1})
-        self.k_resolution = k_resolution
+        self._config_dict["KPOINTS"].update({"k_resolution": 0.2})
         self.kwargs = kwargs
 
     @property
@@ -185,7 +184,7 @@ class SlabOptimizeSet(DictSet):
                     "SYMPREC": 1e-8, "LREAL": "Auto"}
 
         self._config_dict["INCAR"].update(defaults)
-        self._config_dict["KPOINTS"].update({"k_resolution": 0.2})
+        self._config_dict["KPOINTS"].update({"k_resolution": 0.3})
         self.kwargs = kwargs
 
         self.user_slab_settings = user_slab_settings
