@@ -4,7 +4,7 @@
 
 import os
 
-from fireworks import Workflow, FWAction
+from fireworks import Workflow
 from monty.serialization import loadfn
 
 from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
@@ -308,8 +308,15 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
             it is picked up by the right Fireworker.
 
     """
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
+
+    # Set up the geometry optimization Firework
     vasp_input_params = _set_up_functional_params(functional)
-    spec = {"_launch_dir": directory}
+    spec.update({"_launch_dir": directory})
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
@@ -317,11 +324,6 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
 
-    # Add number of nodes to spec, or "none"
-    if number_nodes is not None and number_nodes != 0:
-        spec.update({"_fworker": str(number_nodes) + "nodes"})
-
-    # Set up the geometry optimization Firework
     optimize_fw = SlabOptimizeFW(slab=slab,
                                  user_slab_settings=user_slab_settings,
                                  vasp_input_params=vasp_input_params,
@@ -339,7 +341,8 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
 
 
 def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
-                    calculate_locpot=False, in_custodian=False, number_nodes=None):
+                    user_slab_settings=None, calculate_locpot=False,
+                    is_metal=False, in_custodian=False, number_nodes=None):
     """
     Set up a slab DOS workflow. Starts with a geometry optimization.
 
@@ -356,6 +359,9 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
             calculation we always only consider one point in the c-direction.
         calculate_locpot (bool): Whether to calculate the the local potential,
             e.g. to determine the work function.
+        is_metal (bool): Flag that indicates whether the material for which the
+            geometry optimization should be performed is metallic. Determines the
+            smearing method used.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
@@ -363,6 +369,31 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
             it is picked up by the right Fireworker.
 
     """
+    # Add number of nodes to spec, or "none"
+    if number_nodes is not None and number_nodes != 0:
+        spec = {"_fworker": str(number_nodes) + "nodes"}
+    else:
+        spec = {}
+
+    # --> Set up the geometry optimization Firework
+    vasp_input_params = _set_up_functional_params(functional)
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "optimize")}
+    )
+
+    # For metals, use Methfessel Paxton smearing
+    if is_metal:
+        vasp_input_params["user_incar_settings"].update(
+            {"ISMEAR": 2, "SIGMA": 0.2}
+        )
+    optimize_fw = SlabOptimizeFW(slab=slab,
+                                 user_slab_settings=user_slab_settings,
+                                 vasp_input_params=vasp_input_params,
+                                 in_custodian=in_custodian,
+                                 spec=spec)
+
+    # --> Set up the DOS Firework
     vasp_input_params = _set_up_functional_params(functional)
 
     # Calculate the local potential if requested (e.g. for the work function)
@@ -370,12 +401,10 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
         vasp_input_params["user_incar_settings"].update(
             {"LVTOT": True, "LVHAR": True}
         )
-
-    spec = {"_launch_dir": directory}
-
-    # Add number of nodes to spec, or "none"
-    if number_nodes is not None and number_nodes != 0:
-        spec.update({"_fworker": str(number_nodes) + "nodes"})
+    spec.update(
+        {"_launch_dir": _set_up_relative_directory(directory, functional,
+                                                   "dos")}
+    )
 
     # Add the requested k-point resolution to the input parameters
     kpt_divisions = [round(l / k_resolution + 0.5) for l in
@@ -385,8 +414,8 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
 
     # Set up the geometry optimization Firework
     dos_fw = SlabDosFW(
-        slab=slab,
         vasp_input_params=vasp_input_params,
+        parents=optimize_fw,
         in_custodian=in_custodian,
         spec=spec
     )
@@ -397,84 +426,58 @@ def get_wf_slab_dos(slab, directory, functional=("pbe", {}), k_resolution=0.1,
     workflow_name += " " + str(functional)
 
     # Create the workflow
-    return Workflow(fireworks=[dos_fw, ], name=workflow_name)
+    return Workflow(fireworks=[optimize_fw, dos_fw], name=workflow_name)
 
 
-# def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
-#                   base_k_resolution=0.1, is_metal=False,
-#                   in_custodian=False, number_nodes=None):
-#     """
-#     Generate a full QUOTAS worfklow, i.e. one that:
-#
-#     1. Optimizes the bulk and calculates the optical properties.
-#     2. Optimizes the slabs in 'slab_list' and then calculates the DOS and work
-#     function.
-#
-#     Args:
-#         bulk:
-#         slab_list:
-#         functional:
-#         base_k_resolution:
-#         number_nodes:
-#
-#     """
-#
-#     optics_k_resolution = base_k_resolution / 3 # TODO Improve this
-#     dos_k_resolution = base_k_resolution / 2
-#
-#     # Set up the directory for the bulk calculations
-#     bulk_dir = os.path.join(directory, "bulk")
-#
-#     optics_wf = get_wf_optics(
-#         directory=directory, structure=bulk, functional=functional,
-#         k_resolution=optics_k_resolution, is_metal=is_metal,
-#         in_custodian=in_custodian, number_nodes=number_nodes
-#     )
-#
-#     for slab_dict in slab_list:
-#         # Set up the directories for the slab calculations
-#
-#         slab_dir = str(slab_dict["slab"].miller_index).strip("()").replace(", ", "")
-#
-#         slab_optimize_dir = _set_up_relative_directory(
-#             directory=os.path.join(directory, slab_dir),
-#             functional=functional,
-#             calculation="optimize"
-#         )
-#
-#         slab_dos_dir = _set_up_relative_directory(
-#             directory=os.path.join(directory, slab_dir),
-#             functional=functional,
-#             calculation="dos"
-#         )
-#
-#         slab_optimize = SlabOptimizeFW(
-#             slab=slab_dict["slab"],
-#             directory=slab_optimize_dir,
-#             fix_part="center",
-#             fix_thickness=slab_dict["fix_thickness"],
-#             functional=functional,
-#             is_metal=is_metal,
-#             in_custodian=in_custodian,
-#             number_nodes=number_nodes
-#         )
-#
-#         slab_dos = SlabDosFW(
-#             slab=os.path.join(slab_optimize_dir, "final_slab.json"),
-#             directory=slab_dos_dir,
-#             functional=functional,
-#             k_resolution=dos_k_resolution,
-#             calculate_locpot=True,
-#             in_custodian=in_custodian,
-#             number_nodes=number_nodes
-#         )
-#
-#         fireworks.extend([slab_optimize, slab_dos])
-#         links_dict.update({slab_optimize: [slab_dos]})
-#
-#     # Set up a clear name for the workflow
-#     workflow_name = str(bulk.composition.reduced_formula).replace(" ", "")
-#     workflow_name += " - QUOTAS - "
-#     workflow_name += " " + str(functional)
-#
-#     return Workflow(fireworks=fireworks, links_dict=links_dict, name=workflow_name)
+def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
+                  base_k_resolution=0.1, is_metal=False,
+                  in_custodian=False, number_nodes=None):
+    """
+    Generate a full QUOTAS worfklow, i.e. one that:
+
+    1. Optimizes the bulk and calculates the optical properties.
+    2. Optimizes the slabs in 'slab_list' and then calculates the DOS and work
+    function.
+
+    Args:
+        bulk:
+        slab_list:
+        functional:
+        base_k_resolution:
+        number_nodes:
+
+    """
+    fireworks = list()
+
+    optics_k_resolution = base_k_resolution / 3  # TODO Improve this
+    dos_k_resolution = base_k_resolution / 2
+
+    # Set up the directory for the bulk calculations
+    bulk_dir = os.path.join(directory, "bulk")
+
+    fireworks.extend(get_wf_optics(
+        directory=bulk_dir, structure=bulk, functional=functional,
+        k_resolution=optics_k_resolution, is_metal=is_metal,
+        in_custodian=in_custodian, number_nodes=number_nodes
+    ).fws)
+
+    for slab_dict in slab_list:
+        # Set up the directories for the slab calculations
+
+        slab_dir = str(slab_dict["slab"].miller_index).strip("()").replace(", ", "")
+        slab_dir = os.path.join(directory, slab_dir)
+
+        fireworks.extend(get_wf_slab_dos(
+            slab=slab_dict["slab"], directory=directory, functional=functional,
+            k_resolution=dos_k_resolution,
+            user_slab_settings=slab_dict["user_slab_settings"],
+            calculate_locpot=True, is_metal=is_metal, in_custodian=in_custodian,
+            number_nodes=number_nodes
+        ).fws)
+
+    # Set up a clear name for the workflow
+    workflow_name = str(bulk.composition.reduced_formula).replace(" ", "")
+    workflow_name += " - QUOTAS - "
+    workflow_name += " " + str(functional)
+
+    return Workflow(fireworks=fireworks, name=workflow_name)
