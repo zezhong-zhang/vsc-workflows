@@ -316,7 +316,8 @@ class SlabDosFW(Firework):
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set=SlabStaticSet(
                     structure=slab,
-                    user_incar_settings={"LCHARG": True}
+                    user_incar_settings={"LCHARG": True, "EDIFF": 1e-3},
+                    user_kpoints_settings={"k_resolution": 0.4}
                 )))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
