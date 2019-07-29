@@ -323,7 +323,10 @@ class SlabDosFW(Firework):
             tasks.append(WriteVaspFromIOSet(
                 parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
-                vasp_input_params={"user_incar_settings": {"LCHARG": True}}
+                vasp_input_params={
+                    "user_incar_settings": {"LCHARG": True, "EDIFF": 1e-3},
+                    "user_kpoints_settings": {"k_resolution": 0.4}
+                }
             ))
         else:
             raise ValueError("You must provide either an input structure or "
