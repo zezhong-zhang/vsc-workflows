@@ -3,26 +3,25 @@
 # Distributed under the terms of the MIT License
 
 import os
-import subprocess
 import signal
+import subprocess
 import time
+import warnings
 
 import numpy as np
-
-from quotas import QSlab
-from pybat import Cathode
-
-from pymatgen import Structure
-from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
-from pymatgen.io.vasp.inputs import Incar, Kpoints
-from pymatgen.io.vasp.outputs import Vasprun, Outcar
-from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, PyTask, \
-    explicit_serialize
-from custodian import Custodian
-from custodian.vasp.jobs import VaspJob
-from custodian.vasp.handlers import VaspErrorHandler, UnconvergedErrorHandler
 from atomate.utils.utils import load_class
+from custodian import Custodian
+from custodian.vasp.handlers import VaspErrorHandler, UnconvergedErrorHandler
+from custodian.vasp.jobs import VaspJob
+from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, \
+    explicit_serialize
+from pybat import Cathode
+from pymatgen import Structure
+from pymatgen.io.vasp.inputs import Incar, Kpoints
+from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from quotas import QSlab
 
 """
 Definition of the FireTasks for the workflows.
@@ -75,27 +74,43 @@ def _find_fw_structure(firework):
 
 
 def _load_structure_from_dir(directory):
-    # TODO improve this code - it's not very transparent atm
+    """
+    Find the final geometry from a directory which contains the output of a VASP
+    run, preferably performed within a fireworks workflow. For simple Structure
+    objects, the full geometry can be derived from the VASP outputs. However,
+    more complex subclasses such as Cathode and QSlab require information about
+    the original instance. This can be retrieved from the FW.json file, if present.
 
-    structure = None
+    Args:
+        directory: Directory of the completed VASP run.
 
+    Returns:
+        Structure: The output geometry of the calculation. Either a Structure or
+            subclass of a Structure.
+    """
     if os.path.exists(os.path.join(directory, "FW.json")):
+
         fw = Firework.from_file(os.path.join(directory, "FW.json"))
         structure = _find_fw_structure(fw)
 
         if structure.__class__ == Structure:
-            structure = None
+            vasprun, outcar = get_vasprun_outcar(directory)
+            return get_structure_from_prev_run(vasprun, outcar)
+
         elif issubclass(structure.__class__, QSlab):
             structure.update_sites(directory)
+            return structure
+
         elif issubclass(structure.__class__, Cathode):
             structure.update_sites(directory)
-
-    if structure is None:
+            return structure
+    else:
+        warnings.warn("No FW.json file in the specified directory. Output geometry "
+                      "will be returned as a Structure instance, even though the "
+                      "input geometry may have been derived from a more complex "
+                      "subclass.")
         vasprun, outcar = get_vasprun_outcar(directory)
         return get_structure_from_prev_run(vasprun, outcar)
-    else:
-        return structure
-
 
 @explicit_serialize
 class VaspTask(FiretaskBase):
