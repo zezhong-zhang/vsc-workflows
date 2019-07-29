@@ -169,7 +169,7 @@ class SlabOptimizeSet(DictSet):
             try:
                 self.fix_slab_bulk(**user_slab_settings)
             except TypeError:
-                raise ValueError("No 'thickness' specified in user_slab_settings. "
+                raise ValueError("No 'free_layers' specified in user_slab_settings! "
                                  "As currently the only purpose for this argument "
                                  "is to apply selective dynamics on a slab "
                                  "geometry optimization, this key must be assigned "
