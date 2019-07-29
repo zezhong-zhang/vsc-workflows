@@ -61,11 +61,13 @@ class StaticFW(Firework):
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
                 parents=parents,
-                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
+                vasp_input_params=vasp_input_params
             ))
         else:
             tasks.append(WriteVaspFromIOSet(
-                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet"
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
+                vasp_input_params=vasp_input_params
             ))
 
         # Configure the parallelization settings
@@ -211,7 +213,8 @@ class SlabStaticFW(Firework):
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
                 parents=parents,
-                vasp_input_set="vscworkflows.setup.sets.SlabStaticSet"
+                vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
+                vasp_input_params=vasp_input_params
             ))
         else:
             raise ValueError("You must provide either an input structure or "
