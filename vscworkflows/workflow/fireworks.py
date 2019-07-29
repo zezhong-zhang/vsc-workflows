@@ -342,9 +342,8 @@ class SlabDosFW(Firework):
 
         # Default input parameters
         dos_input_params = {
-            "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000,
-                                    "EDIFF": 1.0e-6},
-            "user_kpoints_settings": {"reciprocal_density": 200}
+            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6},
+            "user_kpoints_settings": {"k_resolution": 0.05}
         }
 
         # Update the defaults with the user specified input parameters
