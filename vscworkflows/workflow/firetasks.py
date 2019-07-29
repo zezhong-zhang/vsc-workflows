@@ -185,9 +185,9 @@ class VaspParallelizationTask(FiretaskBase):
 
             os.chdir(directory)
             stdout_file = self.get("stdout_file",
-                                   os.path.join(directory, "parallel.out"))
+                                   os.path.join(directory, "temp.out"))
             stderr_file = self.get("stderr_file",
-                                   os.path.join(directory, "parallel.out"))
+                                   os.path.join(directory, "temp.out"))
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
             # Get the number of k-points
@@ -221,6 +221,8 @@ class VaspParallelizationTask(FiretaskBase):
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
                 file.write("Number of cores = " + str(number_of_cores) + "\n")
                 file.write("Kpar = " + str(kpar) + "\n")
+
+            os.remove(os.path.join(directory, "temp.out"))
 
         self._set_incar_parallelization(kpar)
 
