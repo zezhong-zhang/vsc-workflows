@@ -4,8 +4,11 @@
 
 import os
 
+from string import ascii_lowercase
 from fireworks import Workflow
 from monty.serialization import loadfn
+from pymatgen.core.surface import Slab, SlabGenerator
+from quotas import QSlab
 
 from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
@@ -462,18 +465,77 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     ).fws)
 
     for slab_dict in slab_list:
-        # Set up the directories for the slab calculations
 
-        slab_dir = str(slab_dict["slab"].miller_index).strip("()").replace(", ", "")
-        slab_dir = os.path.join(directory, slab_dir)
+        if isinstance(slab_dict["slab"], Slab):
 
-        fireworks.extend(get_wf_slab_dos(
-            slab=slab_dict["slab"], directory=slab_dir, functional=functional,
-            k_resolution=dos_k_resolution,
-            user_slab_settings=slab_dict["user_slab_settings"],
-            calculate_locpot=True, is_metal=is_metal, in_custodian=in_custodian,
-            number_nodes=number_nodes
-        ).fws)
+            slab = slab_dict["slab"]
+
+            # Set up the directory for the slab calculations
+            slab_dir = "".join([str(c) for c in slab.miller_index])
+            slab_dir = os.path.join(directory, slab_dir)
+
+            fireworks.extend(get_wf_slab_dos(
+                slab=slab, directory=slab_dir, functional=functional,
+                k_resolution=dos_k_resolution,
+                user_slab_settings=slab_dict["user_slab_settings"],
+                calculate_locpot=True, is_metal=is_metal, in_custodian=in_custodian,
+                number_nodes=number_nodes
+            ).fws)
+
+        elif isinstance(slab_dict["slab"], list) \
+                or isinstance(slab_dict["slab"], str):
+
+            miller_index = [int(c) for c in slab_dict["slab"]]
+
+            try:
+                slabgen = SlabGenerator(
+                    initial_structure=bulk,
+                    miller_index=miller_index,
+                    min_slab_size=slab_dict["min_slab_size"],
+                    min_vacuum_size=slab_dict["min_vacuum_size"]
+                )
+            except KeyError:
+                raise ValueError("Either min_slab_size or min_vacuum_size were not"
+                                 "defined in the slab dictionary for " +
+                                 slab_dict["slab"] + ".")
+
+            slab_terminations = slabgen.get_slabs()
+
+            if len(slab_terminations) == 1:
+
+                slab = QSlab.from_sl(slab_terminations[0])
+
+                # Set up the directory for the slab calculations
+                slab_dir = "".join([str(c) for c in miller_index])
+                slab_dir = os.path.join(directory, slab_dir)
+
+                fireworks.extend(get_wf_slab_dos(
+                    slab=slab, directory=slab_dir, functional=functional,
+                    k_resolution=dos_k_resolution,
+                    user_slab_settings=slab_dict["user_slab_settings"],
+                    calculate_locpot=True, is_metal=is_metal,
+                    in_custodian=in_custodian,
+                    number_nodes=number_nodes
+                ).fws)
+
+            if len(slab_terminations) > 1:
+                print("Multiple slab terminations found. Adding workflow for each "
+                      "termination...")
+
+                for slab, letter in zip(slab_terminations, ascii_lowercase):
+
+                    # Set up the directory for the slab calculations
+                    slab_dir = "".join([str(c) for c in miller_index]) + "_" + letter
+                    slab_dir = os.path.join(directory, slab_dir)
+
+                    fireworks.extend(get_wf_slab_dos(
+                        slab=slab, directory=slab_dir, functional=functional,
+                        k_resolution=dos_k_resolution,
+                        user_slab_settings=slab_dict["user_slab_settings"],
+                        calculate_locpot=True, is_metal=is_metal,
+                        in_custodian=in_custodian,
+                        number_nodes=number_nodes
+                    ).fws)
 
     # Set up a clear name for the workflow
     workflow_name = str(bulk.composition.reduced_formula).replace(" ", "")
