@@ -2,7 +2,8 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import os, warnings
+import os
+import warnings
 
 from monty.serialization import loadfn
 from pymatgen.io.vasp.inputs import Poscar, Kpoints
