@@ -117,8 +117,7 @@ class BulkOptimizeSet(DictSet):
 
         if "k_resolution" in settings:
             # Use k_resolution to calculate kpoints
-            k_kpoint_resolution = settings["k_resolution"]
-            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
+            kpt_divisions = [round(l / settings["k_resolution"] + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
 
             return Kpoints.gamma_automatic(kpts=kpt_divisions)
@@ -158,8 +157,7 @@ class SlabStaticSet(DictSet):
         if "k_resolution" in settings:
 
             # Use k_resolution to calculate kpoints
-            k_kpoint_resolution = settings["k_resolution"]
-            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
+            kpt_divisions = [round(l / settings["k_resolution"] + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
             kpt_divisions[2] = 1  # Only one k-point in c-direction for slab
 
@@ -259,8 +257,7 @@ class SlabOptimizeSet(DictSet):
         if "k_resolution" in settings:
 
             # Use k_resolution to calculate kpoints
-            k_kpoint_resolution = settings["k_resolution"]
-            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
+            kpt_divisions = [round(l / settings["k_resolution"] + 0.5) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
             kpt_divisions[2] = 1  # Only one k-point in c-direction for slab
 
