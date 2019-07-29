@@ -328,6 +328,9 @@ class SlabDosFW(Firework):
             raise ValueError("You must provide either an input structure or "
                              "parent firework to StaticFW!")
 
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask())
+
         # Create the PyTask that runs the calculation
         if in_custodian:
             tasks.append(
@@ -366,6 +369,9 @@ class SlabDosFW(Firework):
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
                 vasp_input_params=dos_input_params
             ))
+
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask())
 
         # Create the PyTask that runs the calculation
         if in_custodian:
