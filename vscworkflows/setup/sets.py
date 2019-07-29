@@ -115,7 +115,7 @@ class SlabStaticSet(DictSet):
 
         # Default settings for a static slab calculation
         defaults = {"AMIN": 0.01, "AMIX": 0.2, "BMIX": 0.001, "ISMEAR": 0,
-                    "SIGMA": 0.01, "SYMPREC": 1e-8}
+                    "SIGMA": 0.05, "SYMPREC": 1e-8}
 
         self._config_dict["INCAR"].update(defaults)
         self.k_resolution = k_resolution
