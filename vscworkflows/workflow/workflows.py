@@ -468,7 +468,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         slab_dir = os.path.join(directory, slab_dir)
 
         fireworks.extend(get_wf_slab_dos(
-            slab=slab_dict["slab"], directory=directory, functional=functional,
+            slab=slab_dict["slab"], directory=slab_dir, functional=functional,
             k_resolution=dos_k_resolution,
             user_slab_settings=slab_dict["user_slab_settings"],
             calculate_locpot=True, is_metal=is_metal, in_custodian=in_custodian,
