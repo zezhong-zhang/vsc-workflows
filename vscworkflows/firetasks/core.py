@@ -356,7 +356,10 @@ class WriteVaspFromIOSet(FiretaskBase):
                 input_set = input_set_cls(self["structure"],
                                           **self.get("vasp_input_params", {}))
             elif "parents" in self.keys():
-                parent_dir = self["parents"]["spec"]["_launch_dir"]
+                try:
+                    parent_dir = self["parents"]["spec"]["_launch_dir"]
+                except KeyError:
+                    parent_dir = self["parents"]["launches"][-1]["launch_dir"]
                 structure = _load_structure_from_dir(parent_dir)
                 input_set = input_set_cls(structure,
                                           **self.get("vasp_input_params", {}))
