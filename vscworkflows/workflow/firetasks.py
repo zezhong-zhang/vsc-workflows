@@ -190,6 +190,11 @@ class VaspParallelizationTask(FiretaskBase):
                                    os.path.join(directory, "temp.out"))
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
+            try:
+                os.remove(os.path.join(directory, "IBZKPT"))
+            except FileNotFoundError:
+                pass
+
             # Get the number of k-points
             with open(stdout_file, 'w') as f_std, \
                     open(stderr_file, "w", buffering=1) as f_err:
