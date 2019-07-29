@@ -103,10 +103,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
 
     # --> Set up the geometry optimization
     vasp_input_params = _set_up_functional_params(functional)
-    spec.update(
-        {"_launch_dir": _set_up_relative_directory(directory, functional,
-                                                   "optimize"),
-         "_pass_job_info": True})
+    spec.update({"_launch_dir": directory})
 
     # For metals, use Methfessel Paxton smearing
     if is_metal:
