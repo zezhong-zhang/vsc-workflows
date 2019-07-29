@@ -1,4 +1,4 @@
-# PBE+U calculations used for the work function/dos calculation of a slab.
+# Standard calculation settings for static calculations
 INCAR:
   ALGO: All
   EDIFF: 1.0e-06

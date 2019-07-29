@@ -1,8 +1,8 @@
-# Standard calculation settings used for the relaxation of a bulk material.
+# Standard calculation settings for geometry optimizations
 INCAR:
   ALGO: All
   EDIFF: 1.0e-05
-  EDIFFG: 1.0e-04
+  EDIFFG: -0.01
   ENCUT: 500
   IBRION: 2
   ISIF: 3
