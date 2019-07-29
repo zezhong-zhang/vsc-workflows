@@ -2,11 +2,9 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import os, warnings
+from fireworks import Firework
 
-from fireworks import PyTask, Firework
-
-from vscworkflows.workflow.firetasks import VaspTask, CustodianTask, \
+from vscworkflows.firetasks.core import VaspTask, CustodianTask, \
     VaspParallelizationTask, PulayTask, WriteVaspFromIOSet
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
     SlabStaticSet, SlabOptimizeSet

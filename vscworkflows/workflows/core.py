@@ -10,7 +10,7 @@ from monty.serialization import loadfn
 from pymatgen.core.surface import Slab, SlabGenerator
 from quotas import QSlab
 
-from vscworkflows.workflow.fireworks import StaticFW, OptimizeFW, OpticsFW, \
+from vscworkflows.fireworks.core import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
 
 """
