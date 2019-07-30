@@ -66,6 +66,7 @@ def _find_fw_structure(firework):
     else:
         for t in firework.tasks:
             if "WriteVaspFromIOSet" in t["_fw_name"]:
+
                 try:
                     structure = t["structure"]
                 except KeyError:
@@ -79,8 +80,7 @@ def _find_fw_structure(firework):
                                 Firework.from_dict(t["parents"])
                             )
                         except KeyError:
-                            raise ValueError(
-                                "Failed to extract structure from Firework.")
+                            pass
 
     if issubclass(structure.__class__, Structure):
         return structure
