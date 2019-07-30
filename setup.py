@@ -7,8 +7,9 @@ setup(
     packages=find_packages(where=".", exclude="docs"),
     install_requires=[
         "pymatgen",
-        "fireworks",
         "custodian",
+        "fireworks",
+        "atomate",
         "dnspython",
         "click",
         "monty"
