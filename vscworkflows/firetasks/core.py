@@ -287,11 +287,13 @@ class VaspParallelizationTask(FiretaskBase):
 class AddFinalGeometryToSpec(FiretaskBase):
 
     required_params = []
-    optional_params = []
+    optional_params = ["directory"]
 
     def run_task(self, fw_spec):
 
-        structure = _load_structure_from_dir(os.getcwd())
+        directory = self.get("directory", os.getcwd())
+
+        structure = _load_structure_from_dir(directory)
         return FWAction(update_spec={"final_geometry": structure})
 
 @explicit_serialize
@@ -498,7 +500,7 @@ class PulayTask(FiretaskBase):
                 tasks.append(VaspTask(directory=directory))
 
             # Add the final geometry to the fw_spec of this firework and its children
-            tasks.append(AddFinalGeometryToSpec())
+            tasks.append(AddFinalGeometryToSpec(directory=directory))
 
             # Create the PyTask that check the Pulay stresses again
             tasks.append(PulayTask(
