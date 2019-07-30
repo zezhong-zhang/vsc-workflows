@@ -373,6 +373,7 @@ class WriteVaspFromIOSet(FiretaskBase):
                     try:
                         parent_dir = self["parents"]["spec"]["_launch_dir"]
                     except KeyError:
+                        # TODO Check this branch for atomate parents
                         parent_dir = self["parents"]["launches"][-1]["launch_dir"]
                     structure = _load_structure_from_dir(parent_dir)
 
@@ -482,31 +483,30 @@ class PulayTask(FiretaskBase):
                   "optimization. Performing another full geometry optimization to "
                   "make sure there were no Pulay stresses present.\n\n")
 
+            tasks = list()
+
             # Create the ScriptTask that copies the CONTCAR to the POSCAR
-            copy_contcar = ScriptTask.from_str(
+            tasks.append(ScriptTask.from_str(
                 "cp " + os.path.join(directory, "CONTCAR") +
                 " " + os.path.join(directory, "POSCAR")
-            )
+            ))
 
             # Create the PyTask that runs the calculation
             if in_custodian:
-                vasprun = CustodianTask(directory=directory)
+                tasks.append(CustodianTask(directory=directory))
             else:
-                vasprun = VaspTask(directory=directory)
+                tasks.append(VaspTask(directory=directory))
 
-            # Write the final structure to a json file for subsequent calculations
-            write_final_structure = VaspWriteFinalStructureTask(
-                directory=directory
-            )
+            # Add the final geometry to the fw_spec of this firework and its children
+            tasks.append(AddFinalGeometryToSpec())
 
             # Create the PyTask that check the Pulay stresses again
-            pulay_task = PulayTask(
+            tasks.append(PulayTask(
                 directory=directory, in_custodian=in_custodian, tolerance=tolerance
-            )
+            ))
 
             # Combine the two FireTasks into one FireWork
-            optimize_fw = Firework(tasks=[copy_contcar, vasprun,
-                                          write_final_structure, pulay_task],
+            optimize_fw = Firework(tasks=tasks,
                                    name="Pulay Step",
                                    spec=fw_spec)
 

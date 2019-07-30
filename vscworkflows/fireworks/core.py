@@ -77,6 +77,9 @@ class StaticFW(Firework):
         else:
             tasks.append(VaspTask())
 
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
+
         # Combine the two FireTasks into one FireWork
         super().__init__(
             tasks=tasks, parents=parents, name=name, spec=spec
@@ -227,8 +230,8 @@ class SlabStaticFW(Firework):
         else:
             tasks.append(VaspTask())
 
-        # Write the final slab to a json file for subsequent calculations
-        # tasks.append(VaspWriteFinalSlabTask(directory=directory)) # TODO
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
 
         super().__init__(tasks=tasks,
                          name=name,
@@ -282,8 +285,8 @@ class SlabOptimizeFW(Firework):
         else:
             tasks.append(VaspTask())
 
-        # Write the final slab to a json file for subsequent calculations
-        # tasks.append(VaspWriteFinalSlabTask()) # TODO
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
 
         # Combine the FireTasks into one FireWork
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
@@ -383,7 +386,7 @@ class SlabDosFW(Firework):
         else:
             tasks.append(VaspTask())
 
-        # Write the final slab to a json file for subsequent calculations
-        # tasks.append(VaspWriteFinalSlabTask()) # TODO
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
 
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
