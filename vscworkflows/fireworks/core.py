@@ -5,7 +5,7 @@
 from fireworks import Firework
 
 from vscworkflows.firetasks.core import VaspTask, CustodianTask, \
-    VaspParallelizationTask, PulayTask, WriteVaspFromIOSet
+    VaspParallelizationTask, PulayTask, WriteVaspFromIOSet, AddFinalGeometryToSpec
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
     SlabStaticSet, SlabOptimizeSet
 
@@ -122,8 +122,8 @@ class OptimizeFW(Firework):
         else:
             tasks.append(VaspTask())
 
-        # Write the final structure to a json file for subsequent calculations
-        # tasks.append(VaspWriteFinalStructureTask()) TODO
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
 
         # Check the Pulay stress
         tasks.append(

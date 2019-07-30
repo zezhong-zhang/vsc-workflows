@@ -284,6 +284,17 @@ class VaspParallelizationTask(FiretaskBase):
 
 
 @explicit_serialize
+class AddFinalGeometryToSpec(FiretaskBase):
+
+    required_params = []
+    optional_params = []
+
+    def run_task(self, fw_spec):
+
+        structure = _load_structure_from_dir(os.getcwd())
+        return FWAction(update_spec={"final_geometry": structure})
+
+@explicit_serialize
 class WriteVaspFromIOSet(FiretaskBase):
     """
     Create VASP input files using implementations of pymatgen's VaspInputSet.
@@ -356,14 +367,15 @@ class WriteVaspFromIOSet(FiretaskBase):
                 input_set = input_set_cls(self["structure"],
                                           **self.get("vasp_input_params", {}))
             elif "parents" in self.keys():
-                with open("temp.txt", "w") as file:
-                    file.write(str(self["parents"]))
-
                 try:
-                    parent_dir = self["parents"]["spec"]["_launch_dir"]
+                    structure = fw_spec["final_geometry"]
                 except KeyError:
-                    parent_dir = self["parents"]["launches"][-1]["launch_dir"]
-                structure = _load_structure_from_dir(parent_dir)
+                    try:
+                        parent_dir = self["parents"]["spec"]["_launch_dir"]
+                    except KeyError:
+                        parent_dir = self["parents"]["launches"][-1]["launch_dir"]
+                    structure = _load_structure_from_dir(parent_dir)
+
                 input_set = input_set_cls(structure,
                                           **self.get("vasp_input_params", {}))
             elif fw_spec["parents"]:
