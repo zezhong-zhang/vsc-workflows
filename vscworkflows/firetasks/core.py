@@ -57,6 +57,7 @@ def _find_irr_k_points(directory):
 
 
 def _find_fw_structure(firework):
+    # TODO docstring + annotation
 
     structure = None
 
@@ -69,18 +70,22 @@ def _find_fw_structure(firework):
 
                 try:
                     structure = t["structure"]
+                    break
                 except KeyError:
+                    pass
 
-                    try:
-                        structure = t["vasp_input_set"].structure
-                    except TypeError:
+                try:
+                    structure = t["vasp_input_set"].structure
+                    break
+                except TypeError:
+                    pass
 
-                        try:
-                            structure = _find_fw_structure(
-                                Firework.from_dict(t["parents"])
-                            )
-                        except KeyError:
-                            pass
+                try:
+                    structure = _find_fw_structure(
+                        Firework.from_dict(t["parents"])
+                    )
+                except KeyError:
+                    pass
 
     if issubclass(structure.__class__, Structure):
         return structure
