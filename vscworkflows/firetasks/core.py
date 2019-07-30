@@ -69,18 +69,21 @@ def _find_fw_structure(firework):
                 try:
                     structure = t["structure"]
                 except KeyError:
-                    pass
-                try:
-                    structure = t["vasp_input_set"].structure
-                except TypeError:
-                    pass
-                try:
-                    structure = _find_fw_structure(Firework.from_dict(t["parents"]))
-                except KeyError:
-                    raise ValueError("Failed to extract structure from Firework.")
+
+                    try:
+                        structure = t["vasp_input_set"].structure
+                    except TypeError:
+
+                        try:
+                            structure = _find_fw_structure(
+                                Firework.from_dict(t["parents"])
+                            )
+                        except KeyError:
+                            raise ValueError(
+                                "Failed to extract structure from Firework.")
 
     if issubclass(structure.__class__, Structure):
-        return Structure
+        return structure
     else:
         raise ValueError("Failed to extract structure from Firework.")
 
