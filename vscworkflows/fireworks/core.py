@@ -185,7 +185,7 @@ class OpticsFW(StaticFW):
 
 class SlabStaticFW(Firework):
 
-    def __init__(self, slab, name="Slab Static", vasp_input_params=None,
+    def __init__(self, slab=None, name="Slab Static", vasp_input_params=None,
                  parents=None, in_custodian=False, spec=None):
         """
         A static calculation for a slab structure.
