@@ -168,7 +168,7 @@ class OpticsFW(StaticFW):
         }
         # Update the defaults with the user specified input parameters
         for k, v in vasp_input_params.items():
-            if k in optics_input_params.keys():
+            if k in optics_input_params.keys() and k != "user_kpoints_settings":
                 optics_input_params[k].update(v)
             else:
                 optics_input_params[k] = v
@@ -351,7 +351,7 @@ class SlabDosFW(Firework):
         vasp_input_params = vasp_input_params or {}
 
         for k, v in vasp_input_params.items():
-            if k in dos_input_params.keys():
+            if k in dos_input_params.keys() and k != "user_kpoints_settings":
                 dos_input_params[k].update(v)
             else:
                 dos_input_params[k] = v
