@@ -357,7 +357,7 @@ class WriteVaspFromIOSet(FiretaskBase):
                                           **self.get("vasp_input_params", {}))
             elif "parents" in self.keys():
                 with open("temp.txt", "w") as file:
-                    file.write(str(print(self["parents"].as_dict())))
+                    file.write(str(print(self["parents"])))
 
                 try:
                     parent_dir = self["parents"]["spec"]["_launch_dir"]
