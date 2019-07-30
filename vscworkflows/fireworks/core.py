@@ -81,9 +81,7 @@ class StaticFW(Firework):
         tasks.append(AddFinalGeometryToSpec())
 
         # Combine the two FireTasks into one FireWork
-        super().__init__(
-            tasks=tasks, parents=parents, name=name, spec=spec
-        )
+        super().__init__(tasks=tasks, parents=parents, name=name, spec=spec)
 
 
 class OptimizeFW(Firework):
@@ -135,10 +133,7 @@ class OptimizeFW(Firework):
         )
 
         # Combine the FireTasks into one FireWork
-        super().__init__(tasks=tasks,
-                         parents=parents,
-                         name=name,
-                         spec=spec)
+        super().__init__(tasks=tasks, parents=parents, name=name, spec=spec)
 
 
 class OpticsFW(StaticFW):
@@ -233,9 +228,7 @@ class SlabStaticFW(Firework):
         # Add the final geometry to the fw_spec of this firework and its children
         tasks.append(AddFinalGeometryToSpec())
 
-        super().__init__(tasks=tasks,
-                         name=name,
-                         spec=spec)
+        super().__init__(tasks=tasks, parents=parents, name=name, spec=spec)
 
 
 class SlabOptimizeFW(Firework):
