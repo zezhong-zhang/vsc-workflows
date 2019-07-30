@@ -57,20 +57,32 @@ def _find_irr_k_points(directory):
 
 
 def _find_fw_structure(firework):
-    for t in firework.tasks:
-        if "WriteVaspFromIOSet" in t["_fw_name"]:
-            try:
-                return t["structure"]
-            except KeyError:
-                pass
-            try:
-                return t["vasp_input_set"].structure
-            except TypeError:
-                pass
-            try:
-                return _find_fw_structure(Firework.from_dict(t["parents"]))
-            except KeyError:
-                raise ValueError("Unable to extract structure from Firework.")
+
+    structure = None
+
+    if "final_geometry" in firework.spec:
+        structure = firework.spec["final_geometry"]
+
+    else:
+        for t in firework.tasks:
+            if "WriteVaspFromIOSet" in t["_fw_name"]:
+                try:
+                    structure = t["structure"]
+                except KeyError:
+                    pass
+                try:
+                    structure = t["vasp_input_set"].structure
+                except TypeError:
+                    pass
+                try:
+                    structure = _find_fw_structure(Firework.from_dict(t["parents"]))
+                except KeyError:
+                    raise ValueError("Failed to extract structure from Firework.")
+
+    if issubclass(structure.__class__, Structure):
+        return Structure
+    else:
+        raise ValueError("Failed to extract structure from Firework.")
 
 
 def _load_structure_from_dir(directory):
@@ -94,6 +106,8 @@ def _load_structure_from_dir(directory):
         fw = Firework.from_file(os.path.join(directory, "FW.json"))
         structure = _find_fw_structure(fw)
 
+        print(structure)
+
         if structure.__class__ == Structure:
             vasprun, outcar = get_vasprun_outcar(directory)
             return get_structure_from_prev_run(vasprun, outcar)
@@ -105,6 +119,9 @@ def _load_structure_from_dir(directory):
         elif issubclass(structure.__class__, Cathode):
             structure.update_sites(directory)
             return structure
+        else:
+            raise ValueError
+
     else:
         warnings.warn("No FW.json file in the specified directory. Output geometry "
                       "will be returned as a Structure instance, even though the "
