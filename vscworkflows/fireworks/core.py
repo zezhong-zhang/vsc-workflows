@@ -343,7 +343,7 @@ class SlabDosFW(Firework):
 
         # Default input parameters
         dos_input_params = {
-            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6},
+            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6, "ICHARG": 1},
             "user_kpoints_settings": {"k_resolution": 0.05}
         }
 
