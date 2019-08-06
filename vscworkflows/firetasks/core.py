@@ -258,6 +258,8 @@ class VaspParallelizationTask(FiretaskBase):
                     time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+                time.sleep(3)
+                os.remove(os.path.join(directory, "temp.out"))
 
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
                 number_of_kpoints = int(file.read().split('\n')[1])
@@ -279,8 +281,6 @@ class VaspParallelizationTask(FiretaskBase):
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
                 file.write("Number of cores = " + str(number_of_cores) + "\n")
                 file.write("Kpar = " + str(kpar) + "\n")
-
-            os.remove(os.path.join(directory, "temp.out"))
 
         self._set_incar_parallelization(kpar)
 
@@ -305,9 +305,9 @@ class VaspParallelizationTask(FiretaskBase):
         return suitable_divisors[
             (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
 
+
 @explicit_serialize
 class IncreaseNumberOfBands(FiretaskBase):
-
     optional_params = ["directory", "multiplier"]
 
     def run_task(self, fw_spec):
