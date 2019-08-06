@@ -305,7 +305,7 @@ class VaspParallelizationTask(FiretaskBase):
         return suitable_divisors[
             (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
 
-
+@explicit_serialize
 class IncreaseNumberOfBands(FiretaskBase):
 
     optional_params = ["directory", "multiplier"]
