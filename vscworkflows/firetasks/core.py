@@ -259,7 +259,8 @@ class VaspParallelizationTask(FiretaskBase):
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                 time.sleep(3)
-                os.remove(os.path.join(directory, "temp.out"))
+
+            os.remove(os.path.join(directory, "temp.out"))
 
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
                 number_of_kpoints = int(file.read().split('\n')[1])
@@ -339,6 +340,9 @@ class IncreaseNumberOfBands(FiretaskBase):
                     time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+
+            time.sleep(3)
+            os.remove(os.path.join(directory, "temp.out"))
 
         outcar = Outcar("OUTCAR")
 
