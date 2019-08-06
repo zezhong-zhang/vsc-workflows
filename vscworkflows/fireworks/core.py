@@ -5,7 +5,8 @@
 from fireworks import Firework
 
 from vscworkflows.firetasks.core import VaspTask, CustodianTask, \
-    VaspParallelizationTask, PulayTask, WriteVaspFromIOSet, AddFinalGeometryToSpec
+    VaspParallelizationTask, IncreaseNumberOfBands, PulayTask, WriteVaspFromIOSet, \
+    AddFinalGeometryToSpec
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
     SlabStaticSet, SlabOptimizeSet
 
@@ -136,7 +137,7 @@ class OptimizeFW(Firework):
         super().__init__(tasks=tasks, parents=parents, name=name, spec=spec)
 
 
-class OpticsFW(StaticFW):
+class OpticsFW(Firework):
 
     def __init__(self, structure=None, name="Optics calculation",
                  vasp_input_params=None, parents=None,
@@ -159,6 +160,7 @@ class OpticsFW(StaticFW):
                 '_category', etc.
 
         """
+        tasks = list()
         vasp_input_params = vasp_input_params or {}
 
         # Default input parameters
@@ -173,9 +175,39 @@ class OpticsFW(StaticFW):
             else:
                 optics_input_params[k] = v
 
-        super().__init__(structure=structure, name=name,
-                         vasp_input_params=optics_input_params, parents=parents,
-                         in_custodian=in_custodian, spec=spec)
+        if structure is not None:
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set=BulkStaticSet(structure, **vasp_input_params)
+            ))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parents=parents,
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
+                vasp_input_params=vasp_input_params
+            ))
+        else:
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
+                vasp_input_params=vasp_input_params
+            ))
+
+        # Configure the parallelization settings
+        tasks.append(VaspParallelizationTask())
+
+        # Increase the number of bands
+        tasks.append(IncreaseNumberOfBands(multiplier=3))
+
+        # Run the calculation
+        if in_custodian:
+            tasks.append(CustodianTask())
+        else:
+            tasks.append(VaspTask())
+
+        # Add the final geometry to the fw_spec of this firework and its children
+        tasks.append(AddFinalGeometryToSpec())
+
+        # Combine the two FireTasks into one FireWork
+        super().__init__(tasks=tasks, parents=parents, name=name, spec=spec)
 
 
 class SlabStaticFW(Firework):
@@ -372,6 +404,9 @@ class SlabDosFW(Firework):
 
         # Configure the parallelization settings
         tasks.append(VaspParallelizationTask())
+
+        # Increase the number of bands
+        tasks.append(IncreaseNumberOfBands(multiplier=3))
 
         # Create the PyTask that runs the calculation
         if in_custodian:
