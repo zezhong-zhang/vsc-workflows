@@ -18,7 +18,7 @@ from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, \
 from pybat import Cathode
 from pymatgen import Structure
 from pymatgen.io.vasp.inputs import Incar, Kpoints
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from quotas import QSlab
@@ -239,10 +239,8 @@ class VaspParallelizationTask(FiretaskBase):
         if kpar is None:
 
             os.chdir(directory)
-            stdout_file = self.get("stdout_file",
-                                   os.path.join(directory, "temp.out"))
-            stderr_file = self.get("stderr_file",
-                                   os.path.join(directory, "temp.out"))
+            stdout_file = os.path.join(directory, "temp.out")
+            stderr_file = os.path.join(directory, "temp.out")
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
             try:
@@ -308,18 +306,57 @@ class VaspParallelizationTask(FiretaskBase):
             (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
 
 
-@explicit_serialize
-class AddFinalGeometryToSpec(FiretaskBase):
+class IncreaseNumberOfBands(FiretaskBase):
 
-    required_params = []
-    optional_params = ["directory"]
+    optional_params = ["directory", "multiplier"]
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
+        multiplier = self.get("multiplier", 3)
 
-        structure = _load_structure_from_dir(directory)
-        return FWAction(update_spec={"final_geometry": structure})
+        os.chdir(directory)
+
+        if not os.path.exists("OUTCAR"):
+
+            # Do a trial run to figure out the number of standard bands
+            stdout_file = "temp.out"
+            stderr_file = "temp.out"
+            vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
+
+            try:
+                os.remove(os.path.join(directory, "IBZKPT"))
+            except FileNotFoundError:
+                pass
+
+            # Get the number of bands
+            with open(stdout_file, 'w') as f_std, \
+                    open(stderr_file, "w", buffering=1) as f_err:
+                p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
+                                     preexec_fn=os.setsid)
+
+                while not os.path.exists("IBZKPT"):
+                    time.sleep(1)
+
+                os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+
+        outcar = Outcar("OUTCAR")
+
+        pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
+                  r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
+        outcar.read_pattern({"nbands": pattern})
+        nbands = multiplier * outcar.data["nbands"][0][0]
+
+        os.remove("temp.out")
+
+        self._set_incar_nbands(nbands)
+
+    def _set_incar_nbands(self, nbands):
+
+        incar = Incar.from_file("INCAR")
+        incar.update({"NBANDS": nbands})
+        incar.write_file("INCAR")
+
 
 @explicit_serialize
 class WriteVaspFromIOSet(FiretaskBase):
@@ -416,6 +453,18 @@ class WriteVaspFromIOSet(FiretaskBase):
                                  "parent firework to WriteVaspFromIOSet!")
 
         input_set.write_input(".")
+
+
+@explicit_serialize
+class AddFinalGeometryToSpec(FiretaskBase):
+    required_params = []
+    optional_params = ["directory"]
+
+    def run_task(self, fw_spec):
+        directory = self.get("directory", os.getcwd())
+
+        structure = _load_structure_from_dir(directory)
+        return FWAction(update_spec={"final_geometry": structure})
 
 
 @explicit_serialize
