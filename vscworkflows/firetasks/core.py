@@ -351,8 +351,6 @@ class IncreaseNumberOfBands(FiretaskBase):
         outcar.read_pattern({"nbands": pattern})
         nbands = multiplier * outcar.data["nbands"][0][0]
 
-        os.remove("temp.out")
-
         self._set_incar_nbands(nbands)
 
     def _set_incar_nbands(self, nbands):
