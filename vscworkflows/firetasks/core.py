@@ -349,7 +349,7 @@ class IncreaseNumberOfBands(FiretaskBase):
         pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
                   r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
         outcar.read_pattern({"nbands": pattern})
-        nbands = multiplier * outcar.data["nbands"][0][0]
+        nbands = multiplier * int(outcar.data["nbands"][0][0])
 
         self._set_incar_nbands(nbands)
 
