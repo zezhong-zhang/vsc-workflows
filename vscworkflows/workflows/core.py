@@ -428,7 +428,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
 
 
 def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
-                  base_k_resolution=0.1, is_metal=False,
+                  k_resolution=0.05, is_metal=False,
                   in_custodian=False, number_nodes=None):
     """
     Generate a full QUOTAS worfklow, i.e. one that:
@@ -458,10 +458,10 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
-        base_k_resolution (float): Resolution of the k-mesh, i.e. distance
+        k_resolution (float): Resolution of the k-mesh, i.e. distance
             between two k-points along each reciprocal lattice vector. Note that
             for a slab calculation we always only consider one point in the
-            c-direction. # TODO Improve this
+            c-direction.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing from Gaussian (0.05 eV) to second
             order Methfessel-Paxton of 0.2 eV; the optics calculation will use a
@@ -476,15 +476,12 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     """
     fireworks = list()
 
-    optics_k_resolution = base_k_resolution / 3  # TODO Improve this
-    dos_k_resolution = base_k_resolution / 2
-
     # Set up the directory for the bulk calculations
     bulk_dir = os.path.join(directory, "bulk")
 
     fireworks.extend(get_wf_optics(
         directory=bulk_dir, structure=bulk, functional=functional,
-        k_resolution=optics_k_resolution, is_metal=is_metal,
+        k_resolution=k_resolution, is_metal=is_metal,
         in_custodian=in_custodian, number_nodes=number_nodes
     ).fws)
 
@@ -500,7 +497,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
             fireworks.extend(get_wf_slab_dos(
                 slab=slab, directory=slab_dir, functional=functional,
-                k_resolution=dos_k_resolution,
+                k_resolution=k_resolution,
                 user_slab_settings=slab_dict["user_slab_settings"],
                 calculate_locpot=True, is_metal=is_metal, in_custodian=in_custodian,
                 number_nodes=number_nodes
@@ -535,7 +532,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
                 fireworks.extend(get_wf_slab_dos(
                     slab=slab, directory=slab_dir, functional=functional,
-                    k_resolution=dos_k_resolution,
+                    k_resolution=k_resolution,
                     user_slab_settings=slab_dict["user_slab_settings"],
                     calculate_locpot=True, is_metal=is_metal,
                     in_custodian=in_custodian,
@@ -556,7 +553,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
                     fireworks.extend(get_wf_slab_dos(
                         slab=slab, directory=slab_dir, functional=functional,
-                        k_resolution=dos_k_resolution,
+                        k_resolution=k_resolution,
                         user_slab_settings=slab_dict["user_slab_settings"],
                         calculate_locpot=True, is_metal=is_metal,
                         in_custodian=in_custodian,
