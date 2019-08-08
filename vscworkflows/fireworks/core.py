@@ -177,18 +177,18 @@ class OpticsFW(Firework):
 
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
-                vasp_input_set=BulkStaticSet(structure, **vasp_input_params)
+                vasp_input_set=BulkStaticSet(structure, **optics_input_params)
             ))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
                 parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
-                vasp_input_params=vasp_input_params
+                vasp_input_params=optics_input_params
             ))
         else:
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set="vscworkflows.setup.sets.BulkStaticSet",
-                vasp_input_params=vasp_input_params
+                vasp_input_params=optics_input_params
             ))
 
         # Configure the parallelization settings
