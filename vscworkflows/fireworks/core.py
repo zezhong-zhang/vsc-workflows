@@ -160,14 +160,15 @@ class OpticsFW(Firework):
                 '_category', etc.
 
         """
-        tasks = list()
-        vasp_input_params = vasp_input_params or {}
-
         # Default input parameters
         optics_input_params = {
             "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6},
             "user_kpoints_settings": {"reciprocal_density": 200}
         }
+
+        tasks = list()
+        vasp_input_params = vasp_input_params or {}
+
         # Update the defaults with the user specified input parameters
         for k, v in vasp_input_params.items():
             if k in optics_input_params.keys() and k != "user_kpoints_settings":
@@ -338,6 +339,12 @@ class SlabDosFW(Firework):
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
         """
+        # Default input parameters for actual DOS run
+        dos_input_params = {
+            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6, "ICHARG": 1},
+            "user_kpoints_settings": {"k_resolution": 0.05}
+        }
+
         tasks = list()
 
         if slab is not None:
@@ -372,12 +379,6 @@ class SlabDosFW(Firework):
         else:
             tasks.append(VaspTask(stdout_file="chgrun.out",
                                   stderr_file="chgrun.out"))
-
-        # Default input parameters
-        dos_input_params = {
-            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6, "ICHARG": 1},
-            "user_kpoints_settings": {"k_resolution": 0.05}
-        }
 
         # Update the defaults with the user specified input parameters
         vasp_input_params = vasp_input_params or {}
