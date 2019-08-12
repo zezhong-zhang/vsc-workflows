@@ -114,8 +114,6 @@ def _load_structure_from_dir(directory):
         fw = Firework.from_file(os.path.join(directory, "FW.json"))
         structure = _find_fw_structure(fw)
 
-        print(structure)
-
         if structure.__class__ == Structure:
             vasprun, outcar = get_vasprun_outcar(directory)
             return get_structure_from_prev_run(vasprun, outcar)
