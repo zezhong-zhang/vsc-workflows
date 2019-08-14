@@ -183,7 +183,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     # Set up the static Firework
     static_fw = StaticFW(vasp_input_params=vasp_input_params,
                          parents=optimize_fw,
-                         in_custodian=in_custodian,
+                         custodian=in_custodian,
                          spec=spec)
 
     # Set up a clear name for the workflow

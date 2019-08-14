@@ -4,7 +4,7 @@
 
 from fireworks import Firework
 
-from vscworkflows.firetasks.core import VaspTask, CustodianTask, \
+from vscworkflows.firetasks.core import VaspTask, VaspCustodianTask, \
     VaspParallelizationTask, IncreaseNumberOfBands, PulayTask, WriteVaspFromIOSet, \
     AddFinalGeometryToSpec
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
@@ -27,7 +27,7 @@ class StaticFW(Firework):
 
     def __init__(self, structure=None, name="Static calculation",
                  vasp_input_params=None, parents=None, spec=None,
-                 in_custodian=False, auto_parallelization=False):
+                 custodian=False, auto_parallelization=False):
         """
         Create a FireWork for performing a static calculation.
 
@@ -40,8 +40,8 @@ class StaticFW(Firework):
                 "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should
-                be run inside a Custodian.
+            custodian (bool): Flag that indicates whether the calculation should
+                be run inside a Custodian. #TODO
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
 
@@ -74,8 +74,10 @@ class StaticFW(Firework):
             tasks.append(VaspParallelizationTask())
 
         # Run the calculation
-        if in_custodian:
-            tasks.append(CustodianTask())
+        if custodian is True:
+            tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
@@ -122,7 +124,7 @@ class OptimizeFW(Firework):
 
         # Run the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(VaspCustodianTask())
         else:
             tasks.append(VaspTask())
 
@@ -203,7 +205,7 @@ class OpticsFW(Firework):
 
         # Run the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(VaspCustodianTask())
         else:
             tasks.append(VaspTask())
 
@@ -259,7 +261,7 @@ class SlabStaticFW(Firework):
 
         # Create the PyTask that runs the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(VaspCustodianTask())
         else:
             tasks.append(VaspTask())
 
@@ -313,7 +315,7 @@ class SlabOptimizeFW(Firework):
 
         # Run the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(VaspCustodianTask())
         else:
             tasks.append(VaspTask())
 
@@ -383,7 +385,7 @@ class SlabDosFW(Firework):
         # Create the PyTask that runs the calculation
         if in_custodian:
             tasks.append(
-                CustodianTask(stdout_file="chgrun.out", stderr_file="chgrun.out")
+                VaspCustodianTask(stdout_file="chgrun.out", stderr_file="chgrun.out")
             )
         else:
             tasks.append(VaspTask(stdout_file="chgrun.out",
@@ -421,7 +423,7 @@ class SlabDosFW(Firework):
 
         # Create the PyTask that runs the calculation
         if in_custodian:
-            tasks.append(CustodianTask())
+            tasks.append(VaspCustodianTask())
         else:
             tasks.append(VaspTask())
 

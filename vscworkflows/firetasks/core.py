@@ -169,7 +169,7 @@ class VaspTask(FiretaskBase):
 
 
 @explicit_serialize
-class CustodianTask(FiretaskBase):
+class VaspCustodianTask(FiretaskBase):
     """
     Run VASP inside a Custodian.
 
@@ -179,7 +179,7 @@ class CustodianTask(FiretaskBase):
         stderr_file (str): File to which to direct the stderr during the run.
 
     """
-    optional_params = ["directory", "stdout_file", "stderr_file"]
+    optional_params = ["directory", "stdout_file", "stderr_file", "handlers"]
 
     def run_task(self, fw_spec):
 
@@ -195,6 +195,8 @@ class CustodianTask(FiretaskBase):
 
         handlers = [VaspErrorHandler(output_filename=stdout_file),
                     UnconvergedErrorHandler(output_filename=stdout_file)]
+
+        handlers = self.get("handlers", handlers)
 
         jobs = [VaspJob(vasp_cmd=vasp_cmd,
                         output_file=stdout_file,
@@ -569,7 +571,7 @@ class PulayTask(FiretaskBase):
 
             # Create the PyTask that runs the calculation
             if in_custodian:
-                tasks.append(CustodianTask(directory=directory))
+                tasks.append(VaspCustodianTask(directory=directory))
             else:
                 tasks.append(VaspTask(directory=directory))
 
