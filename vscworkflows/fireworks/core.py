@@ -26,8 +26,8 @@ __date__ = "Jun 2019"
 class StaticFW(Firework):
 
     def __init__(self, structure=None, name="Static calculation",
-                 vasp_input_params=None, parents=None,
-                 in_custodian=False, spec=None):
+                 vasp_input_params=None, parents=None, spec=None,
+                 in_custodian=False, auto_parallelization=False):
         """
         Create a FireWork for performing a static calculation.
 
@@ -70,7 +70,8 @@ class StaticFW(Firework):
             ))
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask())
+        if auto_parallelization:
+            tasks.append(VaspParallelizationTask())
 
         # Run the calculation
         if in_custodian:
@@ -88,8 +89,8 @@ class StaticFW(Firework):
 class OptimizeFW(Firework):
 
     def __init__(self, structure, name="Geometry Optimization",
-                 vasp_input_params=None, parents=None, in_custodian=False,
-                 spec=None):
+                 vasp_input_params=None, parents=None, spec=None,
+                 in_custodian=False, auto_parallelization=False):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -116,7 +117,8 @@ class OptimizeFW(Firework):
         ))
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask())
+        if auto_parallelization:
+            tasks.append(VaspParallelizationTask())
 
         # Run the calculation
         if in_custodian:
@@ -140,8 +142,8 @@ class OptimizeFW(Firework):
 class OpticsFW(Firework):
 
     def __init__(self, structure=None, name="Optics calculation",
-                 vasp_input_params=None, parents=None,
-                 in_custodian=False, spec=None, auto_parallelization=False):
+                 vasp_input_params=None, parents=None, spec=None,
+                 in_custodian=False, auto_parallelization=False):
         """
         Calculate the dielectric function of a structure.
 
@@ -215,7 +217,8 @@ class OpticsFW(Firework):
 class SlabStaticFW(Firework):
 
     def __init__(self, slab=None, name="Slab Static", vasp_input_params=None,
-                 parents=None, in_custodian=False, spec=None):
+                 parents=None, spec=None, in_custodian=False,
+                 auto_parallelization=False):
         """
         A static calculation for a slab structure.
 
@@ -251,7 +254,8 @@ class SlabStaticFW(Firework):
                              "parent firework to SlabStaticFW!")
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask())
+        if auto_parallelization:
+            tasks.append(VaspParallelizationTask())
 
         # Create the PyTask that runs the calculation
         if in_custodian:
@@ -270,8 +274,8 @@ class SlabOptimizeFW(Firework):
     # TODO Add intuitive way of including kpoint settings
 
     def __init__(self, slab, name="Slab optimize", vasp_input_params=None,
-                 user_slab_settings=None, parents=None, in_custodian=False,
-                 spec=None):
+                 user_slab_settings=None, parents=None, spec=None,
+                 in_custodian=False, auto_parallelization=False):
         """
         Geometry optimization of a slab.
         
@@ -304,7 +308,8 @@ class SlabOptimizeFW(Firework):
         ))
 
         # Configure the parallelization settings
-        tasks.append(VaspParallelizationTask())
+        if auto_parallelization:
+            tasks.append(VaspParallelizationTask())
 
         # Run the calculation
         if in_custodian:
