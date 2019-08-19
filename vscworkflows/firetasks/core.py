@@ -343,17 +343,29 @@ class IncreaseNumberOfBands(FiretaskBase):
             os.remove(os.path.join(directory, "temp.out"))
 
         outcar = Outcar("OUTCAR")
+        incar = Incar("INCAR")
+        nions = len(Structure.from_file("POSCAR"))
 
-        pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
-                  r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
-        outcar.read_pattern({"nbands": pattern})
-        nbands = multiplier * int(outcar.data["nbands"][0][0])
+        # @mbercx - older code, raised issues when calculations are restarted
+        # because it would multiply the number of bands several times, leading to
+        # way too many empty bands.
+        #
+        # pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
+        #           r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
+        # outcar.read_pattern({"nbands": pattern})
+        # nbands = multiplier * int(outcar.data["nbands"][0][0])
 
-        self._set_incar_nbands(nbands)
+        nelect = outcar.nelect
 
-    def _set_incar_nbands(self, nbands):
+        ispin = int(incar.get("ISPIN", 1))
 
-        incar = Incar.from_file("INCAR")
+        if ispin == 1:
+            nbands = int(round(nelect/2 + nions/2)) * multiplier
+        elif ispin == 2:
+            nbands = int(nelect * 3 / 5 + nions) * multiplier
+        else:
+            raise ValueError("ISPIN Value is not set to 1 or 2!")
+
         incar.update({"NBANDS": nbands})
         incar.write_file("INCAR")
 
