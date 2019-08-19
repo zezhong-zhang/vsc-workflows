@@ -343,7 +343,7 @@ class IncreaseNumberOfBands(FiretaskBase):
             os.remove(os.path.join(directory, "temp.out"))
 
         outcar = Outcar("OUTCAR")
-        incar = Incar("INCAR")
+        incar = Incar.from_file("INCAR")
         nions = len(Structure.from_file("POSCAR"))
 
         # @mbercx - older code, raised issues when calculations are restarted
