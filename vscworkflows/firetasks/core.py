@@ -309,6 +309,9 @@ class VaspParallelizationTask(FiretaskBase):
 class IncreaseNumberOfBands(FiretaskBase):
     optional_params = ["directory", "multiplier"]
 
+    # TODO: Remove the need for a testrun by obtaining the number of electrons
+    #  from the input files, as is done by the DictSet class.
+
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
@@ -355,7 +358,9 @@ class IncreaseNumberOfBands(FiretaskBase):
         # outcar.read_pattern({"nbands": pattern})
         # nbands = multiplier * int(outcar.data["nbands"][0][0])
 
-        nelect = outcar.nelect
+        pattern = r"\s+NELECT\s=\s+(\d+).\d+\s+total\snumber\sof\selectrons"
+        outcar.read_pattern({"nelect": pattern})
+        nelect = int(outcar.data["nelect"])
 
         ispin = int(incar.get("ISPIN", 1))
 
