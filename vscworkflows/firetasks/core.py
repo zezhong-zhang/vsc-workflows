@@ -360,7 +360,7 @@ class IncreaseNumberOfBands(FiretaskBase):
 
         pattern = r"\s+NELECT\s=\s+(\d+).\d+\s+total\snumber\sof\selectrons"
         outcar.read_pattern({"nelect": pattern})
-        nelect = int(outcar.data["nelect"])
+        nelect = int(outcar.data["nelect"][0][0])
 
         ispin = int(incar.get("ISPIN", 1))
 
