@@ -23,12 +23,14 @@ POTCAR:
   Ac: Ac
   Ag: Ag
   Al: Al
+  Am: Am
   Ar: Ar
   As: As
+  At: At_d
   Au: Au
   B: B
   Ba: Ba_sv
-  Be: Be_sv
+  Be: Be_sv # Note: VASP recommended is Be!
   Bi: Bi_d
   Br: Br
   C: C
@@ -36,17 +38,19 @@ POTCAR:
   Cd: Cd
   Ce: Ce
   Cl: Cl
+  Cm: Cm
   Co: Co
   Cr: Cr_pv
   Cs: Cs_sv
-  Cu: Cu_pv
+  Cu: Cu_pv # Note: VASP recoommended is Cu!
   Dy: Dy_3
   Er: Er_3
-  Eu: Eu
+  Eu: Eu # Note: VASP recommended is Eu_2!
   F: F
-  Fe: Fe_pv
+  Fe: Fe_pv # Note: VASP recommended is Fe!
+  Fr: Fr_sv
   Ga: Ga_d
-  Gd: Gd
+  Gd: Gd # Note: VASP recommended is Gd_3!
   Ge: Ge_d
   H: H
   He: He
@@ -61,29 +65,32 @@ POTCAR:
   La: La
   Li: Li_sv
   Lu: Lu_3
-  Mg: Mg_pv
+  Mg: Mg_pv # Note: VASP recommended is Mg!
   Mn: Mn_pv
-  Mo: Mo_pv
+  Mo: Mo_pv # Note: VASP recommended is Mo_sv!
   N: N
   Na: Na_pv
-  Nb: Nb_pv
+  Nb: Nb_pv # Note: VASP recommended is Nb_sv!
   Nd: Nd_3
   Ne: Ne
-  Ni: Ni_pv
+  Ni: Ni_pv # Note: VASP recommended is Ni!
   Np: Np
   O: O
-  Os: Os_pv
+  Os: Os_pv # Note: VASP recommended is Os!
   P: P
   Pa: Pa
   Pb: Pb_d
   Pd: Pd
   Pm: Pm_3
+  Po: Po_d
   Pr: Pr_3
   Pt: Pt
   Pu: Pu
+  Ra: Ra_sv
   Rb: Rb_sv
-  Re: Re_pv
+  Re: Re_pv # Note: VASP recommended is Re!
   Rh: Rh_pv
+  Rn: Rn
   Ru: Ru_pv
   S: S
   Sb: Sb
@@ -102,8 +109,8 @@ POTCAR:
   Tl: Tl_d
   Tm: Tm_3
   U: U
-  V: V_pv
-  W: W_sv
+  V: V_pv # Note: VASP recommended is V_sv!
+  W: W_sv # Note: VASP recommended is W_pv, but is not part of PBE54 POTCAR set?
   Xe: Xe
   Y: Y_sv
   Yb: Yb_2
