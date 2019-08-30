@@ -340,6 +340,7 @@ class IncreaseNumberOfBands(FiretaskBase):
                 nelect_written = False
 
                 while not nelect_written:
+                    os.makedirs("NOOOOO")
                     try:
                         with open("OUTCAR", "r") as file:
                             if "NELECT" in file.read():
