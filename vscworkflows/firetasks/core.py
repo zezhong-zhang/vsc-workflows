@@ -319,7 +319,16 @@ class IncreaseNumberOfBands(FiretaskBase):
 
         os.chdir(directory)
 
-        if not os.path.exists("OUTCAR"):
+        nelect_written = False
+
+        try:
+            with open("OUTCAR", "r") as file:
+                if "NELECT" in file.read():
+                    nelect_written = True
+        except FileNotFoundError:
+            pass
+
+        if not nelect_written:
 
             # Do a trial run to figure out the number of standard bands
             stdout_file = "temp.out"
@@ -337,17 +346,14 @@ class IncreaseNumberOfBands(FiretaskBase):
                 p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
                                      preexec_fn=os.setsid)
 
-                nelect_written = False
-
                 while not nelect_written:
-                    os.makedirs("NOOOOO")
                     try:
                         with open("OUTCAR", "r") as file:
                             if "NELECT" in file.read():
                                 nelect_written = True
                     except FileNotFoundError:
                         pass
-                    time.sleep(2)
+                    time.sleep1
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
