@@ -337,7 +337,15 @@ class IncreaseNumberOfBands(FiretaskBase):
                 p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
                                      preexec_fn=os.setsid)
 
-                while not os.path.exists("IBZKPT"):
+                nelect_written = False
+
+                while not nelect_written:
+                    try:
+                        with open("OUTCAR", "r") as file:
+                            if "NELECT" in file.read():
+                                nelect_written = True
+                    except FileNotFoundError:
+                        pass
                     time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
@@ -583,6 +591,7 @@ class PulayTask(FiretaskBase):
                 "cp " + os.path.join(directory, "CONTCAR") +
                 " " + os.path.join(directory, "POSCAR")
             ))
+            # TODO: Switch to IBRION = 1
 
             # Create the PyTask that runs the calculation
             if in_custodian:
