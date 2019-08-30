@@ -335,12 +335,6 @@ class IncreaseNumberOfBands(FiretaskBase):
             stderr_file = "temp.out"
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
-            try:
-                os.remove(os.path.join(directory, "IBZKPT"))
-            except FileNotFoundError:
-                pass
-
-            # Get the number of bands
             with open(stdout_file, 'w') as f_std, \
                     open(stderr_file, "w", buffering=1) as f_err:
                 p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
