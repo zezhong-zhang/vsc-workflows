@@ -353,7 +353,7 @@ class IncreaseNumberOfBands(FiretaskBase):
                                 nelect_written = True
                     except FileNotFoundError:
                         pass
-                    time.sleep1
+                    time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
