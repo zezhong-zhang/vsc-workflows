@@ -44,6 +44,8 @@ class StaticFW(Firework):
                 be run inside a Custodian. #TODO
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
 
         Returns:
             Firework: A firework that represents a static calculation.
@@ -109,6 +111,8 @@ class OptimizeFW(Firework):
                 be run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
 
         """
         tasks = list()
@@ -145,7 +149,8 @@ class OpticsFW(Firework):
 
     def __init__(self, structure=None, name="Optics calculation",
                  vasp_input_params=None, parents=None, spec=None,
-                 in_custodian=False, auto_parallelization=False):
+                 in_custodian=False, auto_parallelization=False,
+                 bands_multiplier=3):
         """
         Calculate the dielectric function of a structure.
 
@@ -162,6 +167,11 @@ class OpticsFW(Firework):
                 be run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
+            bands_multiplier (float): Use IncreaseNumberOfBands task to multiply
+                set the total number of bands equal to a multiple of the VASP
+                default.
 
         """
         # Default input parameters
@@ -200,8 +210,9 @@ class OpticsFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Increase the number of bands
-        tasks.append(IncreaseNumberOfBands(multiplier=3))
+        # Increase the number of bands, unless the user specified NBANDS
+        if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
+            tasks.append(IncreaseNumberOfBands(multiplier=bands_multiplier))
 
         # Run the calculation
         if in_custodian:
@@ -237,6 +248,8 @@ class SlabStaticFW(Firework):
                 run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
         """
         tasks = list()
         vasp_input_params = vasp_input_params or {}
@@ -298,6 +311,8 @@ class SlabOptimizeFW(Firework):
                 run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
         """
         tasks = list()
         vasp_input_params = vasp_input_params or {}
@@ -330,7 +345,7 @@ class SlabDosFW(Firework):
 
     def __init__(self, slab=None, name="Slab DOS", vasp_input_params=None,
                  parents=None, spec=None, in_custodian=False,
-                 auto_parallelization=False):
+                 auto_parallelization=False, bands_multiplier=3):
         """
         DOS calculation of a slab.
 
@@ -347,6 +362,11 @@ class SlabDosFW(Firework):
                 '_category', etc.
             in_custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
+            auto_parallelization (bool): Automatically parallelize the calculation
+                using the VaspParallelizationTask.
+            bands_multiplier (float): Use IncreaseNumberOfBands task to multiply
+                set the total number of bands equal to a multiple of the VASP
+                default.
 
         """
         # Default input parameters for actual DOS run
@@ -418,8 +438,9 @@ class SlabDosFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Increase the number of bands
-        tasks.append(IncreaseNumberOfBands(multiplier=3))
+        # Increase the number of bands, unless the user specified NBANDS
+        if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
+            tasks.append(IncreaseNumberOfBands(multiplier=bands_multiplier))
 
         # Create the PyTask that runs the calculation
         if in_custodian:

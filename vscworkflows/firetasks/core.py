@@ -311,6 +311,9 @@ class VaspParallelizationTask(FiretaskBase):
 class IncreaseNumberOfBands(FiretaskBase):
     optional_params = ["directory", "multiplier"]
 
+    # TODO: Remove the need for a testrun by obtaining the number of electrons
+    #  from the input files, as is done by the DictSet class.
+
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
@@ -318,25 +321,34 @@ class IncreaseNumberOfBands(FiretaskBase):
 
         os.chdir(directory)
 
-        if not os.path.exists("OUTCAR"):
+        nelect_written = False
+
+        try:
+            with open("OUTCAR", "r") as file:
+                if "NELECT" in file.read():
+                    nelect_written = True
+        except FileNotFoundError:
+            pass
+
+        if not nelect_written:
 
             # Do a trial run to figure out the number of standard bands
             stdout_file = "temp.out"
             stderr_file = "temp.out"
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
-            try:
-                os.remove(os.path.join(directory, "IBZKPT"))
-            except FileNotFoundError:
-                pass
-
-            # Get the number of bands
             with open(stdout_file, 'w') as f_std, \
                     open(stderr_file, "w", buffering=1) as f_err:
                 p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
                                      preexec_fn=os.setsid)
 
-                while not os.path.exists("IBZKPT"):
+                while not nelect_written:
+                    try:
+                        with open("OUTCAR", "r") as file:
+                            if "NELECT" in file.read():
+                                nelect_written = True
+                    except FileNotFoundError:
+                        pass
                     time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
@@ -345,17 +357,31 @@ class IncreaseNumberOfBands(FiretaskBase):
             os.remove(os.path.join(directory, "temp.out"))
 
         outcar = Outcar("OUTCAR")
-
-        pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
-                  r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
-        outcar.read_pattern({"nbands": pattern})
-        nbands = multiplier * int(outcar.data["nbands"][0][0])
-
-        self._set_incar_nbands(nbands)
-
-    def _set_incar_nbands(self, nbands):
-
         incar = Incar.from_file("INCAR")
+        nions = len(Structure.from_file("POSCAR"))
+
+        # @mbercx - older code, raised issues when calculations are restarted
+        # because it would multiply the number of bands several times, leading to
+        # way too many empty bands.
+        #
+        # pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
+        #           r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
+        # outcar.read_pattern({"nbands": pattern})
+        # nbands = multiplier * int(outcar.data["nbands"][0][0])
+
+        pattern = r"\s+NELECT\s=\s+(\d+).\d+\s+total\snumber\sof\selectrons"
+        outcar.read_pattern({"nelect": pattern})
+        nelect = int(outcar.data["nelect"][0][0])
+
+        ispin = int(incar.get("ISPIN", 1))
+
+        if ispin == 1:
+            nbands = int(round(nelect/2 + nions/2)) * multiplier
+        elif ispin == 2:
+            nbands = int(nelect * 3 / 5 + nions) * multiplier
+        else:
+            raise ValueError("ISPIN Value is not set to 1 or 2!")
+
         incar.update({"NBANDS": nbands})
         incar.write_file("INCAR")
 
@@ -568,6 +594,7 @@ class PulayTask(FiretaskBase):
                 "cp " + os.path.join(directory, "CONTCAR") +
                 " " + os.path.join(directory, "POSCAR")
             ))
+            # TODO: Switch to IBRION = 1
 
             # Create the PyTask that runs the calculation
             if in_custodian:

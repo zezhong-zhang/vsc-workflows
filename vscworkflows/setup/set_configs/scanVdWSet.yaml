@@ -1,0 +1,8 @@
+# SCAN+rVV10 calculation settings
+INCAR:
+  METAGGA: SCAN
+  EDIFF: 1.0e-04
+  AMIX: 0.1
+  LUSE_VDW: True
+  BPARAM: 15.7
+  ADDGRID: True
