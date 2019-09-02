@@ -198,8 +198,9 @@ class OpticsFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Increase the number of bands
-        tasks.append(IncreaseNumberOfBands(multiplier=3))
+        # Increase the number of bands, unless the user specified NBANDS
+        if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
+            tasks.append(IncreaseNumberOfBands(multiplier=3))
 
         # Run the calculation
         if in_custodian:
@@ -416,8 +417,9 @@ class SlabDosFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Increase the number of bands
-        tasks.append(IncreaseNumberOfBands(multiplier=3))
+        # Increase the number of bands, unless the user specified NBANDS
+        if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
+            tasks.append(IncreaseNumberOfBands(multiplier=3))
 
         # Create the PyTask that runs the calculation
         if in_custodian:
