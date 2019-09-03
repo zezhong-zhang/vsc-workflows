@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 from atomate.utils.utils import load_class
 from custodian import Custodian
+from custodian.custodian import ErrorHandler
 from custodian.vasp.handlers import VaspErrorHandler, UnconvergedErrorHandler
 from custodian.vasp.jobs import VaspJob
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, \
@@ -541,7 +542,7 @@ class PulayTask(FiretaskBase):
             was run.
 
     Optional params:
-        in_custodian (bool): Flag that indicates whether the calculation should be
+        custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
@@ -552,7 +553,7 @@ class PulayTask(FiretaskBase):
             is performed starting from the final geometry.
 
     """
-    option_params = ["directory", "in_custodian", "condition", "tolerance"]
+    option_params = ["directory", "custodian", "condition", "tolerance"]
 
     # Standard tolerance for deciding to perform another geometry optimization.
     #
@@ -566,7 +567,7 @@ class PulayTask(FiretaskBase):
 
         # Extract the parameters into variables; this makes for cleaner code IMO
         directory = self.get("directory", os.getcwd())
-        in_custodian = self.get("in_custodian", False)
+        custodian = self.get("custodian", False)
         condition = self.get("condition", "ionic_steps")
         tolerance = self.get("tolerance", PulayTask.pulay_tolerance_dict[condition])
 
@@ -627,18 +628,23 @@ class PulayTask(FiretaskBase):
             ))
             # TODO: Switch to IBRION = 1
 
-            # Create the PyTask that runs the calculation
-            if in_custodian:
-                tasks.append(VaspCustodianTask(directory=directory))
+            # Run the calculation
+            if custodian is True:
+                tasks.append(VaspCustodianTask())
+            elif isinstance(custodian, list):
+                assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                    "Not all elements in 'custodian' list are instances of " \
+                    "the ErrorHandler class!"
+                tasks.append(VaspCustodianTask(handlers=custodian))
             else:
-                tasks.append(VaspTask(directory=directory))
+                tasks.append(VaspTask())
 
             # Add the final geometry to the fw_spec of this firework and its children
             tasks.append(AddFinalGeometryToSpec(directory=directory))
 
             # Create the PyTask that check the Pulay stresses again
             tasks.append(PulayTask(
-                directory=directory, in_custodian=in_custodian, tolerance=tolerance
+                directory=directory, custodian=custodian, tolerance=tolerance
             ))
 
             # Combine the two FireTasks into one FireWork

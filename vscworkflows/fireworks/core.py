@@ -146,7 +146,7 @@ class OptimizeFW(Firework):
 
         # Check the Pulay stress
         tasks.append(
-            PulayTask(in_custodian=custodian,
+            PulayTask(custodian=custodian,
                       spec=spec)
         )
 
