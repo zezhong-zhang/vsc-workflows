@@ -94,7 +94,7 @@ class OptimizeFW(Firework):
 
     def __init__(self, structure, name="Geometry Optimization",
                  vasp_input_params=None, parents=None, spec=None,
-                 in_custodian=False, auto_parallelization=False):
+                 custodian=False, auto_parallelization=False):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -107,7 +107,7 @@ class OptimizeFW(Firework):
                 "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should
+            custodian (bool): Flag that indicates whether the calculation should
                 be run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
@@ -127,8 +127,10 @@ class OptimizeFW(Firework):
             tasks.append(VaspParallelizationTask())
 
         # Run the calculation
-        if in_custodian:
+        if custodian is True:
             tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
@@ -137,7 +139,7 @@ class OptimizeFW(Firework):
 
         # Check the Pulay stress
         tasks.append(
-            PulayTask(in_custodian=in_custodian,
+            PulayTask(in_custodian=custodian,
                       spec=spec)
         )
 

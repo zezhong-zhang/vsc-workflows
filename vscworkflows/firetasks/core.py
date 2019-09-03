@@ -193,10 +193,10 @@ class VaspCustodianTask(FiretaskBase):
         stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
-        handlers = [VaspErrorHandler(output_filename=stdout_file),
-                    UnconvergedErrorHandler(output_filename=stdout_file)]
+        default_handlers = [VaspErrorHandler, UnconvergedErrorHandler]
 
-        handlers = self.get("handlers", handlers)
+        handlers = self.get("handlers", default_handlers)
+        handlers = [handler(output_filename=stdout_file) for handler in handlers]
 
         jobs = [VaspJob(vasp_cmd=vasp_cmd,
                         output_file=stdout_file,
@@ -376,7 +376,7 @@ class IncreaseNumberOfBands(FiretaskBase):
         ispin = int(incar.get("ISPIN", 1))
 
         if ispin == 1:
-            nbands = int(round(nelect/2 + nions/2)) * multiplier
+            nbands = int(round(nelect / 2 + nions / 2)) * multiplier
         elif ispin == 2:
             nbands = int(nelect * 3 / 5 + nions) * multiplier
         else:
@@ -556,6 +556,7 @@ class PulayTask(FiretaskBase):
 
     """
     option_params = ["directory", "in_custodian", "tolerance"]
+    # TODO Add other conditions: e.g. energy / ionic steps / ...
 
     # Standard tolerance for deciding to perform another geometry optimization.
     # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the

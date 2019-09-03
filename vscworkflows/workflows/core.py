@@ -115,7 +115,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
-                             in_custodian=in_custodian,
+                             custodian=in_custodian,
                              spec=spec)
 
     # Set up a clear name for the workflow
@@ -173,7 +173,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
     # Set up the geometry optimization Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
-                             in_custodian=in_custodian,
+                             custodian=in_custodian,
                              spec=spec)
 
     # -> Set up the static calculation
@@ -242,7 +242,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
     # Set up the Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
-                             in_custodian=in_custodian,
+                             custodian=in_custodian,
                              spec=spec)
 
     # 2. Set up the optics calculation
