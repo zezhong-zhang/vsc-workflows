@@ -265,7 +265,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
     optics_fw = OpticsFW(
         parents=optimize_fw,
         vasp_input_params=vasp_input_params,
-        in_custodian=in_custodian,
+        custodian=in_custodian,
         spec=spec
     )
 
@@ -326,7 +326,7 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
     optimize_fw = SlabOptimizeFW(slab=slab,
                                  user_slab_settings=user_slab_settings,
                                  vasp_input_params=vasp_input_params,
-                                 in_custodian=in_custodian,
+                                 custodian=in_custodian,
                                  spec=spec)
 
     # Set up a clear name for the workflow
@@ -393,7 +393,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
     optimize_fw = SlabOptimizeFW(slab=slab,
                                  user_slab_settings=user_slab_settings,
                                  vasp_input_params=vasp_input_params,
-                                 in_custodian=in_custodian,
+                                 custodian=in_custodian,
                                  spec=spec)
 
     # --> Set up the DOS Firework
@@ -414,7 +414,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
     dos_fw = SlabDosFW(
         vasp_input_params=vasp_input_params,
         parents=optimize_fw,
-        in_custodian=in_custodian,
+        custodian=in_custodian,
         spec=spec
     )
 

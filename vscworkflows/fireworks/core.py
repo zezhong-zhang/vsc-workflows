@@ -80,8 +80,9 @@ class StaticFW(Firework):
         if custodian is True:
             tasks.append(VaspCustodianTask())
         elif isinstance(custodian, list):
-            assert all([isinstance(h, ErrorHandler) for h in custodian]),\
-                "Not all elements in 'custodian' list are instances of ErrorHandler!"
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
             tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
@@ -134,7 +135,8 @@ class OptimizeFW(Firework):
             tasks.append(VaspCustodianTask())
         elif isinstance(custodian, list):
             assert all([isinstance(h, ErrorHandler) for h in custodian]), \
-                "Not all elements in 'custodian' list are instances of ErrorHandler!"
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
             tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
@@ -156,7 +158,7 @@ class OpticsFW(Firework):
 
     def __init__(self, structure=None, name="Optics calculation",
                  vasp_input_params=None, parents=None, spec=None,
-                 in_custodian=False, auto_parallelization=False,
+                 custodian=False, auto_parallelization=False,
                  bands_multiplier=3):
         """
         Calculate the dielectric function of a structure.
@@ -170,7 +172,7 @@ class OpticsFW(Firework):
                 "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should
+            custodian (bool): Flag that indicates whether the calculation should
                 be run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
@@ -222,8 +224,13 @@ class OpticsFW(Firework):
             tasks.append(IncreaseNumberOfBands(multiplier=bands_multiplier))
 
         # Run the calculation
-        if in_custodian:
+        if custodian is True:
             tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
@@ -237,7 +244,7 @@ class OpticsFW(Firework):
 class SlabStaticFW(Firework):
 
     def __init__(self, slab=None, name="Slab Static", vasp_input_params=None,
-                 parents=None, spec=None, in_custodian=False,
+                 parents=None, spec=None, custodian=False,
                  auto_parallelization=False):
         """
         A static calculation for a slab structure.
@@ -251,7 +258,7 @@ class SlabStaticFW(Firework):
                 "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should be
+            custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
@@ -279,9 +286,14 @@ class SlabStaticFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Create the PyTask that runs the calculation
-        if in_custodian:
+        # Run the calculation
+        if custodian is True:
             tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
@@ -297,7 +309,7 @@ class SlabOptimizeFW(Firework):
 
     def __init__(self, slab, name="Slab optimize", vasp_input_params=None,
                  user_slab_settings=None, parents=None, spec=None,
-                 in_custodian=False, auto_parallelization=False):
+                 custodian=False, auto_parallelization=False):
         """
         Geometry optimization of a slab.
         
@@ -314,7 +326,7 @@ class SlabOptimizeFW(Firework):
                 "user_incar_settings", "user_kpoints_settings", etc.
             parents (Firework or List): Firework or list of Fireworks that are the
                 parents of this Firework.
-            in_custodian (bool): Flag that indicates whether the calculation should be
+            custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
@@ -336,8 +348,13 @@ class SlabOptimizeFW(Firework):
             tasks.append(VaspParallelizationTask())
 
         # Run the calculation
-        if in_custodian:
+        if custodian is True:
             tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
@@ -351,7 +368,7 @@ class SlabOptimizeFW(Firework):
 class SlabDosFW(Firework):
 
     def __init__(self, slab=None, name="Slab DOS", vasp_input_params=None,
-                 parents=None, spec=None, in_custodian=False,
+                 parents=None, spec=None, custodian=False,
                  auto_parallelization=False, bands_multiplier=3):
         """
         DOS calculation of a slab.
@@ -367,7 +384,7 @@ class SlabDosFW(Firework):
                 parents of this Firework.
             spec (dict): Firework spec. Can be used to set e.g. the '_launch_dir',
                 '_category', etc.
-            in_custodian (bool): Flag that indicates whether the calculation should be
+            custodian (bool): Flag that indicates whether the calculation should be
                 run inside a Custodian.
             auto_parallelization (bool): Automatically parallelize the calculation
                 using the VaspParallelizationTask.
@@ -409,11 +426,17 @@ class SlabDosFW(Firework):
         if auto_parallelization:
             tasks.append(VaspParallelizationTask())
 
-        # Create the PyTask that runs the calculation
-        if in_custodian:
-            tasks.append(
-                VaspCustodianTask(stdout_file="chgrun.out", stderr_file="chgrun.out")
-            )
+        # Run the calculation
+        if custodian is True:
+            tasks.append(VaspCustodianTask(stdout_file="chgrun.out",
+                                           stderr_file="chgrun.out"))
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(stdout_file="chgrun.out",
+                                           stderr_file="chgrun.out",
+                                           handlers=custodian))
         else:
             tasks.append(VaspTask(stdout_file="chgrun.out",
                                   stderr_file="chgrun.out"))
@@ -428,7 +451,7 @@ class SlabDosFW(Firework):
                 dos_input_params[k] = v
 
         if slab is not None:
-            # Set up the input files of the low precision static calculation
+            # Set up the input files of the actual DOS run
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set=SlabStaticSet(
                     structure=slab,
@@ -449,9 +472,14 @@ class SlabDosFW(Firework):
         if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
             tasks.append(IncreaseNumberOfBands(multiplier=bands_multiplier))
 
-        # Create the PyTask that runs the calculation
-        if in_custodian:
+        # Run the calculation
+        if custodian is True:
             tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
 
