@@ -4,6 +4,7 @@
 
 from fireworks import Firework
 
+from custodian.custodian import ErrorHandler
 from vscworkflows.firetasks.core import VaspTask, VaspCustodianTask, \
     VaspParallelizationTask, IncreaseNumberOfBands, PulayTask, WriteVaspFromIOSet, \
     AddFinalGeometryToSpec
@@ -79,6 +80,8 @@ class StaticFW(Firework):
         if custodian is True:
             tasks.append(VaspCustodianTask())
         elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]),\
+                "Not all elements in 'custodian' list are instances of ErrorHandler!"
             tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
@@ -130,6 +133,8 @@ class OptimizeFW(Firework):
         if custodian is True:
             tasks.append(VaspCustodianTask())
         elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of ErrorHandler!"
             tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())

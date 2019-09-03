@@ -193,10 +193,11 @@ class VaspCustodianTask(FiretaskBase):
         stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
-        default_handlers = [VaspErrorHandler, UnconvergedErrorHandler]
+        default_handlers = [VaspErrorHandler(), UnconvergedErrorHandler()]
 
         handlers = self.get("handlers", default_handlers)
-        handlers = [handler(output_filename=stdout_file) for handler in handlers]
+        for handler in handlers:
+            handler.output_filename = stdout_file
 
         jobs = [VaspJob(vasp_cmd=vasp_cmd,
                         output_file=stdout_file,
