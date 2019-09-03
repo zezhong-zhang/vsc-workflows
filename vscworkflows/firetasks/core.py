@@ -183,11 +183,8 @@ class VaspCustodianTask(FiretaskBase):
 
     def run_task(self, fw_spec):
 
-        if self.get("directory", None) is not None:
-            os.chdir(self["directory"])
-            directory = os.getcwd()
-        else:
-            directory = self["directory"]
+        directory = self.get("directory", os.getcwd())
+        os.chdir(directory)
 
         stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
         stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
