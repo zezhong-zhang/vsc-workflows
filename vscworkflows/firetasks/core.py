@@ -182,7 +182,6 @@ class VaspCustodianTask(FiretaskBase):
     optional_params = ["directory", "stdout_file", "stderr_file", "handlers"]
 
     def run_task(self, fw_spec):
-
         directory = self.get("directory", os.getcwd())
         os.chdir(directory)
 
@@ -553,38 +552,71 @@ class PulayTask(FiretaskBase):
             is performed starting from the final geometry.
 
     """
-    option_params = ["directory", "in_custodian", "tolerance"]
-    # TODO Add other conditions: e.g. energy / ionic steps / ...
+    option_params = ["directory", "in_custodian", "condition", "tolerance"]
 
     # Standard tolerance for deciding to perform another geometry optimization.
+    #
+    # "lattice"
     # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the
     # difference between the initial and final matrices of the lattice vectors of the
     # structure.
-    pulay_tolerance = 5e-2
+    pulay_tolerance_dict = {"lattice": 5e-2, "ionic_steps": 1, "energy": 0.1}
 
     def run_task(self, fw_spec):
 
         # Extract the parameters into variables; this makes for cleaner code IMO
         directory = self.get("directory", os.getcwd())
         in_custodian = self.get("in_custodian", False)
-        tolerance = self.get("tolerance", PulayTask.pulay_tolerance)
+        condition = self.get("condition", "ionic_steps")
+        tolerance = self.get("tolerance", PulayTask.pulay_tolerance_dict[condition])
 
-        # Check if the lattice vectors have changed significantly
-        initial_structure = Structure.from_file(
-            os.path.join(directory, "POSCAR")
-        )
-        final_structure = Structure.from_file(
-            os.path.join(directory, "CONTCAR")
-        )
+        perform_pulay_step = False
 
-        sum_differences = np.linalg.norm(
-            initial_structure.lattice.matrix - final_structure.lattice.matrix
-        )
+        if condition == "ionic_steps":
 
-        if sum_differences > tolerance:
-            print("Lattice vectors have changed significantly during geometry "
-                  "optimization. Performing another full geometry optimization to "
-                  "make sure there were no Pulay stresses present.\n\n")
+            vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
+
+            if vasprun.nionic_steps > tolerance:
+                print("Number of ionic steps of geometry optimization is more "
+                      "than specified tolerance (" + str(tolerance) +
+                      "). Performing another geometry optimization.")
+                perform_pulay_step = True
+
+        elif condition == "energy":
+
+            vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
+
+            ionic_energies = [step['e_wo_entrp'] for step in vasprun.ionic_steps]
+            structure = vasprun.final_structure
+
+            if abs(ionic_energies[-1] - ionic_energies[0]) / len(structure) \
+                    > tolerance:
+                print("Difference in energy per atom between first ionic step and "
+                      "final ionic step is larger than specified tolerance (" +
+                      str(tolerance) + "). Performing another geometry "
+                                       "optimization.")
+                perform_pulay_step = True
+
+        elif condition == "lattice":
+
+            # Check if the lattice vectors have changed significantly
+            initial_structure = Structure.from_file(
+                os.path.join(directory, "POSCAR")
+            )
+            final_structure = Structure.from_file(
+                os.path.join(directory, "CONTCAR")
+            )
+
+            sum_differences = np.linalg.norm(
+                initial_structure.lattice.matrix - final_structure.lattice.matrix
+            )
+            if sum_differences > tolerance:
+                print("Lattice vectors have changed significantly during geometry "
+                      "optimization. Performing another full geometry optimization "
+                      "to make sure there were no Pulay stresses present.\n\n")
+                perform_pulay_step = True
+
+        if perform_pulay_step:
 
             tasks = list()
 
