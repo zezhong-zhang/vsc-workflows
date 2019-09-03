@@ -429,7 +429,7 @@ class WriteVaspFromIOSet(FiretaskBase):
             input_set = self['vasp_input_set']
 
             # Check if the user has also provided optional params
-            if len(self.keys()) > 1:
+            if any(i in self.keys() for i in WriteVaspFromIOSet.optional_params):
                 warnings.warn("Vasp input set was provided as an instance of a "
                               "VaspInputSet, however optional parameter were also "
                               "specified. These will not be used to overwrite the "
