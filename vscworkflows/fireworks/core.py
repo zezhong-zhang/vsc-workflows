@@ -98,7 +98,8 @@ class OptimizeFW(Firework):
 
     def __init__(self, structure, name="Geometry Optimization",
                  vasp_input_params=None, parents=None, spec=None,
-                 custodian=False, auto_parallelization=False):
+                 custodian=False, auto_parallelization=False,
+                 pulay_condition=None, pulay_tolerance=None):
         """
         Initialize a Firework for a geometry optimization.
 
@@ -120,6 +121,8 @@ class OptimizeFW(Firework):
 
         """
         tasks = list()
+        pulay_condition = pulay_condition or "ionic_steps"
+        pulay_tolerance = pulay_tolerance or 1
         vasp_input_params = vasp_input_params or {}
 
         tasks.append(WriteVaspFromIOSet(
@@ -147,7 +150,9 @@ class OptimizeFW(Firework):
         # Check the Pulay stress
         tasks.append(
             PulayTask(custodian=custodian,
-                      spec=spec)
+                      spec=spec,
+                      condition=pulay_condition,
+                      tolerance=pulay_tolerance)
         )
 
         # Combine the FireTasks into one FireWork
