@@ -47,6 +47,7 @@ def _set_structure_incar_settings(structure, config_dict):
         config_dict["INCAR"].update({"ISPIN": 2, "MAGMOM": True})
 
         # TODO Add non-collinear functionality
+        # TODO Consider user_incar_settings MAGMOM -> What if None/True?
 
     # Adjust the projector-evaluation scheme to Auto for large unit cells (+20 atoms)
     if len(structure) > 20:
