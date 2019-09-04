@@ -180,7 +180,8 @@ class VaspCustodianTask(FiretaskBase):
         stderr_file (str): File to which to direct the stderr during the run.
 
     """
-    optional_params = ["directory", "stdout_file", "stderr_file", "handlers"]
+    optional_params = ["directory", "stdout_file", "stderr_file", "handlers",
+                       "monitor_freq"]
 
     def run_task(self, fw_spec):
         directory = self.get("directory", os.getcwd())
@@ -201,7 +202,8 @@ class VaspCustodianTask(FiretaskBase):
                         stderr_file=stderr_file,
                         auto_npar=False)]
 
-        c = Custodian(handlers, jobs, max_errors=10)
+        c = Custodian(handlers, jobs, max_errors=10,
+                      monitor_freq=self.get("monitor_freq", 30))
         c.run()
 
 
