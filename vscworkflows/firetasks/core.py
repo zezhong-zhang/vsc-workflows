@@ -518,7 +518,7 @@ class PulayTask(FiretaskBase):
     option_params = ["directory", "custodian", "condition", "tolerance"]
 
     # Standard tolerances for deciding to perform another geometry optimization.
-    pulay_tolerance_dict = {"ionic_steps": 1, "energy": 0.1, "lattice": 5e-2}
+    pulay_tolerance_dict = {"ionic_steps": 1, "energy": 1e-3, "lattice": 5e-2}
 
     def run_task(self, fw_spec):
 
@@ -600,7 +600,8 @@ class PulayTask(FiretaskBase):
 
             # Create the PyTask that check the Pulay stresses again
             tasks.append(PulayTask(
-                directory=directory, custodian=custodian, tolerance=tolerance
+                directory=directory, custodian=custodian,
+                condition=condition, tolerance=tolerance
             ))
 
             # Combine the two FireTasks into one FireWork
