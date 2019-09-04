@@ -16,13 +16,13 @@ from custodian.vasp.handlers import VaspErrorHandler, UnconvergedErrorHandler
 from custodian.vasp.jobs import VaspJob
 from fireworks import Firework, FWAction, FiretaskBase, ScriptTask, \
     explicit_serialize
-from pybat import Cathode
 from pymatgen import Structure
 from pymatgen.io.vasp.inputs import Incar, Kpoints
 from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from quotas import QSlab
+from pybat import Cathode
 
 """
 Definition of the FireTasks for the workflows.
@@ -356,21 +356,11 @@ class IncreaseNumberOfBands(FiretaskBase):
 
         outcar = Outcar("OUTCAR")
         incar = Incar.from_file("INCAR")
-        nions = len(Structure.from_file("POSCAR"))
-
-        # @mbercx - older code, raised issues when calculations are restarted
-        # because it would multiply the number of bands several times, leading to
-        # way too many empty bands.
-        #
-        # pattern = r"k-points\s+NKPTS\s=\s+\d+\s+k-points\sin\sBZ\s+NKDIM\s" + \
-        #           r"=\s+\d+\s+number\sof\sbands\s+NBANDS=\s+(\d+)"
-        # outcar.read_pattern({"nbands": pattern})
-        # nbands = multiplier * int(outcar.data["nbands"][0][0])
-
         pattern = r"\s+NELECT\s=\s+(\d+).\d+\s+total\snumber\sof\selectrons"
         outcar.read_pattern({"nelect": pattern})
-        nelect = int(outcar.data["nelect"][0][0])
 
+        nions = len(Structure.from_file("POSCAR"))
+        nelect = int(outcar.data["nelect"][0][0])
         ispin = int(incar.get("ISPIN", 1))
 
         if ispin == 1:
@@ -494,43 +484,6 @@ class AddFinalGeometryToSpec(FiretaskBase):
 
 
 @explicit_serialize
-class VaspWriteFinalStructureTask(FiretaskBase):
-    """
-    Obtain the final structure from a calculation and write it to a json file.
-
-    """
-    required_params = []
-    optional_params = ["directory"]
-
-    def run_task(self, fw_spec):
-        directory = self.get("directory", os.getcwd())
-        vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
-        vasprun.final_structure.to("json", os.path.join(directory,
-                                                        "final_structure.json"))
-
-
-@explicit_serialize
-class VaspWriteFinalSlabTask(FiretaskBase):
-    """
-    Obtain the final slab from a calculation and write it to a json file. Note that
-    the difference between this Firetask and the Structure one is that you cannot
-    extract all information on a QSlab from the vasprun.xml file. Instead, the initial
-    QSlab is stored as a json file when the input is written, and this Firetask updates
-    the details from that file.
-
-    """
-    required_params = []
-    optional_params = ["directory"]
-
-    def run_task(self, fw_spec):
-        directory = self.get("directory", os.getcwd())
-
-        initial_slab = QSlab.from_file(os.path.join(directory, "initial_slab.json"))
-        initial_slab.update_sites(directory)
-        initial_slab.to("json", os.path.join(directory, "final_slab.json"))
-
-
-@explicit_serialize
 class PulayTask(FiretaskBase):
     """
     Check if the lattice vectors of a structure have changed significantly during
@@ -547,25 +500,26 @@ class PulayTask(FiretaskBase):
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_category` to the Firework generated, so
             it is picked up by the right Fireworker.
-        tolerance (float): Tolerance that indicates the maximum change in norm for the
-            matrix defined by the cartesian coordinates of the lattice vectors.
-            If the norm changes more than the tolerance, another geometry optimization
-            is performed starting from the final geometry.
+        condition (str): Condition that determines whether or not an additional
+            geometry optimization should be performed. There are several options:
+
+            "ionic_steps" - (default) Maximum number of ionic steps.
+            "energy" - Maximum energy difference between the initial and final
+                geometry of the optimization.
+            "lattice" - Maximum allowed 2-norm of the matrix defined by taking
+                the difference between the initial and final matrices
+                constructed from the lattice vectors.
+        tolerance (float): Maximum allowed value for the condition. If this value
+            is exceeded, an extra geometry optimization is performed.
 
     """
     option_params = ["directory", "custodian", "condition", "tolerance"]
 
-    # Standard tolerance for deciding to perform another geometry optimization.
-    #
-    # "lattice"
-    # Basically, PulayTask calculates the 2-norm of the absolute matrix taken from the
-    # difference between the initial and final matrices of the lattice vectors of the
-    # structure.
-    pulay_tolerance_dict = {"lattice": 5e-2, "ionic_steps": 1, "energy": 0.1}
+    # Standard tolerances for deciding to perform another geometry optimization.
+    pulay_tolerance_dict = {"ionic_steps": 1, "energy": 0.1, "lattice": 5e-2}
 
     def run_task(self, fw_spec):
 
-        # Extract the parameters into variables; this makes for cleaner code IMO
         directory = self.get("directory", os.getcwd())
         custodian = self.get("custodian", False)
         condition = self.get("condition", "ionic_steps")
