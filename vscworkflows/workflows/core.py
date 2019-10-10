@@ -84,7 +84,7 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify additional tags.
+            to specify additional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing from Gaussian (0.05 eV) to second
             order Methfessel-Paxton of 0.2 eV.
@@ -139,7 +139,7 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify the various functional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing of the geometry optimization from
             Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
@@ -207,7 +207,7 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
             k-points along each reciprocal lattice vector.
         is_metal (bool): Flag that indicates the material being studied is a
@@ -295,7 +295,7 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify the various functional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing of the geometry optimization from
             Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
@@ -355,7 +355,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
             k-points along each reciprocal lattice vector. Note that for a slab
             calculation we always only consider one point in the c-direction.
@@ -457,7 +457,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
         functional (tuple): Tuple with the functional details. The first element
             contains a string that indicates the functional used ("pbe", "hse", ...),
             whereas the second element contains a dictionary that allows the user
-            to specify the various functional tags.
+            to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance
             between two k-points along each reciprocal lattice vector. Note that
             for a slab calculation we always only consider one point in the
