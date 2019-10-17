@@ -161,7 +161,7 @@ class VaspTask(FiretaskBase):
         stdout_file = self.get("stdout_file", os.path.join(directory, "vasp.out"))
         stderr_file = self.get("stderr_file", os.path.join(directory, "vasp.out"))
 
-        if os.exists(stdout_file):
+        if os.path.exists(stdout_file):
             subprocess.run("cat " + stdout_file + " >> backup.out", shell=True)
 
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
