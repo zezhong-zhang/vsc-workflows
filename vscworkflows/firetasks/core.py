@@ -158,8 +158,8 @@ class VaspTask(FiretaskBase):
         else:
             directory = os.getcwd()
 
-        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
-        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
+        stdout_file = self.get("stdout_file", os.path.join(directory, "vasp.out"))
+        stderr_file = self.get("stderr_file", os.path.join(directory, "vasp.out"))
 
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
@@ -187,8 +187,8 @@ class VaspCustodianTask(FiretaskBase):
         directory = self.get("directory", os.getcwd())
         os.chdir(directory)
 
-        stdout_file = self.get("stdout_file", os.path.join(directory, "out"))
-        stderr_file = self.get("stderr_file", os.path.join(directory, "out"))
+        stdout_file = self.get("stdout_file", os.path.join(directory, "vasp.out"))
+        stderr_file = self.get("stderr_file", os.path.join(directory, "vasp.out"))
         vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
         default_handlers = [VaspErrorHandler(), UnconvergedErrorHandler()]
