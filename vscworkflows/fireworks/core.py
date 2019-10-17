@@ -121,8 +121,6 @@ class OptimizeFW(Firework):
 
         """
         tasks = list()
-        pulay_condition = pulay_condition or "ionic_steps"
-        pulay_tolerance = pulay_tolerance or 1
         vasp_input_params = vasp_input_params or {}
 
         tasks.append(WriteVaspFromIOSet(
