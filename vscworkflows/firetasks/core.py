@@ -524,7 +524,7 @@ class PulayTask(FiretaskBase):
 
         directory = self.get("directory", os.getcwd())
         custodian = self.get("custodian", False)
-        condition = self.get("condition", "ionic_steps")
+        condition = self.get("condition", "energy")
         tolerance = self.get("tolerance", PulayTask.pulay_tolerance_dict[condition])
 
         perform_pulay_step = False
