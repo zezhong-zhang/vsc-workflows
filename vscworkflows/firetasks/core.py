@@ -273,7 +273,9 @@ class VaspParallelizationTask(FiretaskBase):
                 number_of_cores = int(os.environ["PBS_NP"])
             except KeyError:
                 try:
-                    number_of_cores = int(os.environ["SLURM_NTASKS"])
+                    number_of_nodes = int(os.environ["SLURM_NNODES"])
+                    cores_per_node = int(os.environ["SLURM_CPUS_ON_NODE"])
+                    number_of_cores = number_of_nodes * cores_per_node
                 except KeyError:
                     raise NotImplementedError(
                         "The VaspParallelizationTask currently only supports "
