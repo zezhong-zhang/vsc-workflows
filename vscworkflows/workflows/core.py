@@ -341,7 +341,8 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
 
 def get_wf_slab_dos(slab, directory, user_slab_settings=None,
                     functional=("pbe", {}), k_resolution=0.1,
-                    calculate_locpot=False, is_metal=False, in_custodian=False,
+                    calculate_locpot=False, is_metal=False,
+                    user_incar_settings=None, in_custodian=False,
                     number_nodes=None):
     """
     Set up a slab DOS workflow. Starts with a geometry optimization.
@@ -390,6 +391,9 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
         vasp_input_params["user_incar_settings"].update(
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
+
     optimize_fw = SlabOptimizeFW(slab=slab,
                                  user_slab_settings=user_slab_settings,
                                  vasp_input_params=vasp_input_params,
@@ -409,6 +413,9 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
                                                    "dos")}
     )
     vasp_input_params["user_kpoints_settings"] = {"k_resolution": k_resolution}
+
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
 
     # Set up the geometry optimization Firework
     dos_fw = SlabDosFW(
