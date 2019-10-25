@@ -24,7 +24,6 @@ __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
 __date__ = "Sep 2019"
 
-
 VASP_BACKUP_FILES = {"INCAR", "KPOINTS", "POSCAR", "OUTCAR", "CONTCAR",
                      "OSZICAR", "vasprun.xml", "vasp.out", "std_err.txt"}
 
@@ -38,7 +37,7 @@ class MemoryErrorHandler(ErrorHandler):
     is_monitor = False
 
     error_msgs = {
-        "bad_termination" : ["BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES"]
+        "bad_termination": ["BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES"]
     }
 
     def __init__(self, output_filename="vasp.out", kpoints_multiplier=0.95):
@@ -97,7 +96,6 @@ class MemoryMonitorHandler(ErrorHandler):
         self.errors = set()
 
     def check(self):
-
         result = subprocess.check_output(['bash', '-c', 'free -m'])
         free_memory = result.split('\n')[1].split()[3]
 
@@ -107,7 +105,6 @@ class MemoryMonitorHandler(ErrorHandler):
         return free_memory < self.min_free_memory
 
     def correct(self):
-
         kpoints = Kpoints.from_file("KPOINTS")
         kpoints.kpts[0] = [int(self.kpoints_multiplier * k)
                            for k in kpoints.kpts[0]]
@@ -117,16 +114,13 @@ class MemoryMonitorHandler(ErrorHandler):
 class ElectronicConvergenceMonitor(ErrorHandler):
     """
     Monitor if the electronic optimization of the current ionic step is converging,
-    by looking at the trend of a linear fit to the logarithm of the absolute energy
-    differences.
-
-    The trend of the residual charge density would be a better indicator of
-    convergence, but unfortunately
+    by looking at the trend of a linear fit to the logarithm of the residual
+    charge.
 
     """
     is_monitor = True
 
-    def __init__(self, min_electronic_steps=40, max_allowed_incline=-0.005):
+    def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005):
         """
         Initializes the handler with the output file to check.
 
