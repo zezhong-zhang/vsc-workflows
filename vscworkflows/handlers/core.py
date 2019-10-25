@@ -125,6 +125,12 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         Initializes the handler with the output file to check.
 
         Args:
+            min_electronic_steps (int): Minimum number of electronic steps for
+                which the charge must have been updated to check for convergence.
+            max_allowed_incline (float): Maximum incline of the linear fit to the
+                logarithm of the residual charge. If this value is exceeded,
+                the check method returns positive and the monitor kills the job
+                and corrects.
 
         """
         self.min_electronic_steps = min_electronic_steps
@@ -150,8 +156,6 @@ class ElectronicConvergenceMonitor(ErrorHandler):
                 current_incline = np.polyfit(x=range(len(residual_charge)),
                                              y=residual_charge,
                                              deg=1)[0]
-
-                print(current_incline)
 
                 if current_incline > self.max_allowed_incline:
                     return True
