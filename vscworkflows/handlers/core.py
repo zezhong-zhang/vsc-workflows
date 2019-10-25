@@ -156,6 +156,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
                 current_incline = np.polyfit(x=range(len(residual_charge)),
                                              y=residual_charge,
                                              deg=1)[0]
+                with open("convergence.out", "w") as file:
+                    file.write(str(current_incline) + "\n")
 
                 if current_incline > self.max_allowed_incline:
                     return True
