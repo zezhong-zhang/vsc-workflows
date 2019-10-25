@@ -4,6 +4,7 @@
 
 import subprocess
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pymatgen.io.vasp.inputs import Kpoints
 from pymatgen.io.vasp.outputs import Oszicar
@@ -120,7 +121,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     """
     is_monitor = True
 
-    def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005):
+    def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005,
+                 max_interp_range=40, output_data=False):
         """
         Initializes the handler with the output file to check.
 
@@ -135,6 +137,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         """
         self.min_electronic_steps = min_electronic_steps
         self.max_allowed_incline = max_allowed_incline
+        self.max_interp_range = max_interp_range
+        self.output_data = output_data
 
     def check(self):
 
@@ -153,11 +157,38 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
             if len(residual_charge) + nelmdl > self.min_electronic_steps:
 
-                current_incline = np.polyfit(x=range(len(residual_charge)),
-                                             y=residual_charge,
-                                             deg=1)[0]
-                with open("convergence.out", "w") as file:
-                    file.write(str(current_incline) + "\n")
+                current_incline = np.polyfit(
+                    x=range(min([len(residual_charge), self.max_interp_range])),
+                    y=residual_charge[-self.max_interp_range:],
+                    deg=1
+                )[0]
+
+                if self.output_data:
+
+                    with open("convergence.out", "a") as file:
+                        file.write(str(current_incline) + "\n")
+
+                    incline_per_step = []
+
+                    for i in range(self.min_electronic_steps, len(residual_charge)):
+                        incline_per_step.append(
+                            np.polyfit(range(min([i, self.max_interp_range])),
+                                       residual_charge[
+                                       max([0, i - self.max_interp_range]):i], 1)[0]
+                        )
+
+                    ax1 = plt.subplot(2, 1, 1)
+                    ax2 = plt.subplot(2, 1, 2)
+
+                    ax1.plot(residual_charge)
+                    incline_plot = [0] * self.min_electronic_steps
+                    incline_plot.extend(incline_per_step)
+                    ax2.plot(incline_plot)
+
+                    ax1.set_ylabel("log(rms (c))")
+                    ax2.set_ylabel("Incline")
+
+                    plt.savefig("convergence")
 
                 if current_incline > self.max_allowed_incline:
                     return True
