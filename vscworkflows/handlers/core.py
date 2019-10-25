@@ -120,6 +120,9 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     by looking at the trend of a linear fit to the logarithm of the absolute energy
     differences.
 
+    The trend of the residual charge density would be a better indicator of
+    convergence, but unfortunately
+
     """
     is_monitor = True
 
@@ -136,7 +139,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     def check(self):
 
         vi = VaspInput.from_directory(".")
-        nelmdl = vi["INCAR"].get("NELMDL", 5)
+        nelmdl = abs(vi["INCAR"].get("NELMDL", -5))
 
         try:
             oszicar = Oszicar("OSZICAR")
@@ -144,12 +147,19 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
             if len(dE_log) > self.min_electronic_steps:
 
+                print(nelmdl)
+                print(len(range(len(dE_log) - nelmdl)))
+                print(len(dE_log[nelmdl:]))
+
                 current_incline = np.polyfit(x=range(len(dE_log) - nelmdl),
                                              y=dE_log[nelmdl:],
                                              deg=1)[0]
 
+                print(current_incline)
+
                 if current_incline > self.max_allowed_incline:
                     return True
+
         except Exception as e:
             print(e)
         return False
