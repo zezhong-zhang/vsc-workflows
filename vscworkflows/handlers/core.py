@@ -126,7 +126,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     """
     is_monitor = True
 
-    def __init__(self, min_electronic_steps=40, max_allowed_incline=0.01):
+    def __init__(self, min_electronic_steps=40, max_allowed_incline=-0.005):
         """
         Initializes the handler with the output file to check.
 
@@ -142,17 +142,19 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         nelmdl = abs(vi["INCAR"].get("NELMDL", -5))
 
         try:
-            oszicar = Oszicar("OSZICAR")
-            dE_log = [np.log(abs(d['dE'])) for d in oszicar.electronic_steps[-1]]
 
-            if len(dE_log) > self.min_electronic_steps:
+            lines = []
+            with open("OSZICAR", "r") as file:
+                for l in file.readlines():
+                    lines.append(l)
 
-                print(nelmdl)
-                print(len(range(len(dE_log) - nelmdl)))
-                print(len(dE_log[nelmdl:]))
+            residual_charge = [np.log(abs(float(l[-11:-1]))) for l in
+                               lines[nelmdl + 2:-2]]
 
-                current_incline = np.polyfit(x=range(len(dE_log) - nelmdl),
-                                             y=dE_log[nelmdl:],
+            if len(residual_charge) + nelmdl > self.min_electronic_steps:
+
+                current_incline = np.polyfit(x=range(len(residual_charge)),
+                                             y=residual_charge,
                                              deg=1)[0]
 
                 print(current_incline)
