@@ -150,8 +150,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
                 if current_incline > self.max_allowed_incline:
                     return True
-        except:
-            pass
+        except Exception as e:
+            print(e)
         return False
 
     def correct(self):
