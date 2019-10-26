@@ -343,7 +343,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
                     functional=("pbe", {}), k_resolution=0.1,
                     calculate_locpot=False, is_metal=False,
                     user_incar_settings=None, in_custodian=False,
-                    number_nodes=None):
+                    number_nodes=None, auto_parallelization=False):
     """
     Set up a slab DOS workflow. Starts with a geometry optimization.
 
@@ -398,7 +398,8 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
                                  user_slab_settings=user_slab_settings,
                                  vasp_input_params=vasp_input_params,
                                  custodian=in_custodian,
-                                 spec=spec)
+                                 spec=spec,
+                                 auto_parallelization=auto_parallelization)
 
     # --> Set up the DOS Firework
     vasp_input_params = _set_up_functional_params(functional)
@@ -422,7 +423,8 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
         vasp_input_params=vasp_input_params,
         parents=optimize_fw,
         custodian=in_custodian,
-        spec=spec
+        spec=spec,
+        auto_parallelization=auto_parallelization
     )
 
     # Set up a clear name for the workflow
