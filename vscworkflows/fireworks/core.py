@@ -402,7 +402,7 @@ class SlabDosFW(Firework):
         # Default input parameters for charge density run
         chgrun_input_params = {
             "user_incar_settings": {"LCHARG": True, "EDIFF": 1.0e-6},
-            "user_kpoints_settings": {"k_resolution": 0.4}
+            "user_kpoints_settings": {"k_resolution": 0.1}
         }
 
         # Default input parameters for actual DOS run
