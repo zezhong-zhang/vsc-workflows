@@ -24,4 +24,3 @@ def vasp_input_update(vasp_input_params, d):
             vasp_input_params[k].update(v)
         else:
             vasp_input_params[k] = v
-    return vasp_input_params
