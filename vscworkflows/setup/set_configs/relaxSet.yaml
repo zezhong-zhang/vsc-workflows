@@ -1,6 +1,6 @@
 # Standard calculation settings for geometry optimizations
 INCAR:
-  ALGO: All
+  ALGO: Fast
   EDIFF: 1.0e-05
   EDIFFG: -0.01
   ENCUT: 500

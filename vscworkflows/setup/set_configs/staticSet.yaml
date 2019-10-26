@@ -1,6 +1,6 @@
 # Standard calculation settings for static calculations
 INCAR:
-  ALGO: All
+  ALGO: Fast
   EDIFF: 1.0e-06
   ENCUT: 500
   ISMEAR: -5

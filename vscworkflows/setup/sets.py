@@ -136,8 +136,8 @@ class SlabStaticSet(DictSet):
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
         # Default settings for a static slab calculation
-        incar_defaults = {"ALGO": "Fast", "ISMEAR": 0, "SIGMA": 0.05,
-                          "SYMPREC": 1e-8, "LREAL": "Auto", "NELM": 300}
+        incar_defaults = {"ISMEAR": 0, "SIGMA": 0.05, "SYMPREC": 1e-8,
+                          "LREAL": "Auto", "NELM": 300}
 
         self._config_dict["INCAR"].update(incar_defaults)
         self._config_dict["KPOINTS"].update({"k_resolution": 0.2})
@@ -181,7 +181,7 @@ class SlabOptimizeSet(DictSet):
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
         # Defaults for a slab optimization
-        defaults = {"ALGO": "Fast", "ISIF": 2, "SYMPREC": 1e-8, "LREAL": "Auto"}
+        defaults = {"ISIF": 2, "SYMPREC": 1e-8, "LREAL": "Auto"}
 
         self._config_dict["INCAR"].update(defaults)
         self._config_dict["KPOINTS"].update({"k_resolution": 0.3})
