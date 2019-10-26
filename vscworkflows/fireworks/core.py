@@ -5,11 +5,13 @@
 from fireworks import Firework
 
 from custodian.custodian import ErrorHandler
+
 from vscworkflows.firetasks.core import VaspTask, VaspCustodianTask, \
     VaspParallelizationTask, IncreaseNumberOfBands, PulayTask, WriteVaspFromIOSet, \
     AddFinalGeometryToSpec
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
     SlabStaticSet, SlabOptimizeSet
+from vscworkflows.utils import vasp_input_update
 
 """
 Package that contains all the fireworks to construct Workflows.
@@ -374,7 +376,8 @@ class SlabDosFW(Firework):
                  parents=None, spec=None, custodian=False,
                  auto_parallelization=False, bands_multiplier=3):
         """
-        DOS calculation of a slab.
+        DOS calculation of a slab. Starts with a calculation of the charge density
+        using a low density k-point mesh.
 
         Args:
             slab (Slab): Geometry of the slab.
@@ -396,11 +399,23 @@ class SlabDosFW(Firework):
                 default.
 
         """
+        # Default input parameters for charge density run
+        chgrun_input_params = {
+            "user_incar_settings": {"LCHARG": True, "EDIFF": 1.0e-6},
+            "user_kpoints_settings": {"k_resolution": 0.4}
+        }
+
         # Default input parameters for actual DOS run
         dos_input_params = {
-            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6, "ICHARG": 1},
+            "user_incar_settings": {"NEDOS": 2000, "EDIFF": 1.0e-6, "ICHARG": 11},
             "user_kpoints_settings": {"k_resolution": 0.05}
         }
+
+        # Update the defaults with the user specified input parameters
+        vasp_input_params = vasp_input_params or {}
+
+        vasp_input_update(chgrun_input_params, vasp_input_params)
+        vasp_input_update(dos_input_params, vasp_input_params)
 
         tasks = list()
 
@@ -408,18 +423,13 @@ class SlabDosFW(Firework):
             # Set up the input files of the low precision static calculation
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set=SlabStaticSet(
-                    structure=slab,
-                    user_incar_settings={"LCHARG": True, "EDIFF": 1e-3},
-                    user_kpoints_settings={"k_resolution": 0.4}
+                    structure=slab, **chgrun_input_params
                 )))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
                 parents=parents,
                 vasp_input_set="vscworkflows.setup.sets.SlabStaticSet",
-                vasp_input_params={
-                    "user_incar_settings": {"LCHARG": True, "EDIFF": 1e-3},
-                    "user_kpoints_settings": {"k_resolution": 0.4}
-                }
+                vasp_input_params=chgrun_input_params
             ))
         else:
             raise ValueError("You must provide either an input structure or "
@@ -444,21 +454,11 @@ class SlabDosFW(Firework):
             tasks.append(VaspTask(stdout_file="chgrun.out",
                                   stderr_file="chgrun.out"))
 
-        # Update the defaults with the user specified input parameters
-        vasp_input_params = vasp_input_params or {}
-
-        for k, v in vasp_input_params.items():
-            if k in dos_input_params.keys() and k != "user_kpoints_settings":
-                dos_input_params[k].update(v)
-            else:
-                dos_input_params[k] = v
-
         if slab is not None:
             # Set up the input files of the actual DOS run
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set=SlabStaticSet(
-                    structure=slab,
-                    **dos_input_params
+                    structure=slab, **dos_input_params
                 )))
         elif parents is not None:  # TODO What if multiple parents?
             tasks.append(WriteVaspFromIOSet(
