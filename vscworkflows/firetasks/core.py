@@ -498,15 +498,13 @@ class PulayTask(FiretaskBase):
     present. If so, start a new geometry optimization with the final structure.
 
     Required params:
-        directory (str): Directory in which the geometry optimization calculation
-            was run.
+        None
 
     Optional params:
+        directory (str): Directory in which the geometry optimization calculation
+            was run.
         custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
-        number_nodes (int): Number of nodes that should be used for the calculations.
-            Is required to add the proper `_category` to the Firework generated, so
-            it is picked up by the right Fireworker.
         condition (str): Condition that determines whether or not an additional
             geometry optimization should be performed. There are several options:
 
