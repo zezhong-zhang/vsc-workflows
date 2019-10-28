@@ -609,4 +609,4 @@ class PulayTask(FiretaskBase):
                 condition=condition, tolerance=tolerance
             ))
 
-            fw_spec["_tasks"].extend()
+            fw_spec["_tasks"].extend(tasks)
