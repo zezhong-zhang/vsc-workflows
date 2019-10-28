@@ -609,4 +609,4 @@ class PulayTask(FiretaskBase):
                 condition=condition, tolerance=tolerance
             ))
 
-            return FWAction(mod_spec=[{"$push": {"_tasks": tasks}}])
+            return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
