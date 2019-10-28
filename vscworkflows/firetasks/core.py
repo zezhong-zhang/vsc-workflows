@@ -609,4 +609,4 @@ class PulayTask(FiretaskBase):
                 condition=condition, tolerance=tolerance
             ))
 
-            fw_spec["_tasks"].extend(tasks)
+            return FWAction(mod_spec=[{"$push": {"_tasks": tasks}}])
