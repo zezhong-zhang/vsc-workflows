@@ -53,7 +53,8 @@ def _set_up_functional_params(functional):
 
     Args:
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06",
+            ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional tags.
 
@@ -82,7 +83,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
         directory (str): Directory in which the geometry optimization should be
             performed.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06",
+            ...),
             whereas the second element contains a dictionary that allows the user
             to specify additional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
@@ -137,7 +139,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
         structure (Structure): Input geometry.
         directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06",
+            ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
@@ -206,7 +209,8 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         structure (Structure): Input geometry.
         directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06",
+            ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
@@ -296,7 +300,7 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
             dynamics of the slab geometry optimization. These are passed to
             the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
@@ -357,7 +361,7 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
             dynamics of the slab geometry optimization. These are passed to
             the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
@@ -467,7 +471,7 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
         directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse", ...),
+            contains a string that indicates the functional used ("pbe", "hse06", ...),
             whereas the second element contains a dictionary that allows the user
             to specify the various functional INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance
