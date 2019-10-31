@@ -609,4 +609,11 @@ class PulayTask(FiretaskBase):
                 condition=condition, tolerance=tolerance
             ))
 
-            return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
+            # Combine the two FireTasks into one FireWork
+            optimize_fw = Firework(tasks=tasks,
+                                   name="Pulay Step",
+                                   spec=fw_spec)
+
+            return FWAction(detours=optimize_fw)
+
+            # return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
