@@ -614,6 +614,4 @@ class PulayTask(FiretaskBase):
                                    name="Pulay Step",
                                    spec=fw_spec)
 
-            return FWAction(detours=optimize_fw)
-
-            # return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
+            return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
