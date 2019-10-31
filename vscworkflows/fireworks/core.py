@@ -190,7 +190,8 @@ class OpticsFW(Firework):
         """
         # Default input parameters
         optics_input_params = {
-            "user_incar_settings": {"LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6},
+            "user_incar_settings": {
+                "LOPTICS": True, "NEDOS": 2000, "EDIFF": 1.0e-6, "CSHIFT": 0.01},
             "user_kpoints_settings": {"reciprocal_density": 200}
         }
 
