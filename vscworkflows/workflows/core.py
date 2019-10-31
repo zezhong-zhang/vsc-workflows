@@ -8,7 +8,7 @@ from string import ascii_lowercase
 from fireworks import Workflow
 from monty.serialization import loadfn
 from pymatgen.core.surface import Slab, SlabGenerator
-from quotas import QSlab # TODO: Remove dependency on quotas package!
+from quotas import QSlab  # TODO: Remove dependency on quotas package!
 
 from vscworkflows.fireworks.core import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
@@ -196,7 +196,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 
 
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
-                  is_metal=False, in_custodian=False, number_nodes=None):
+                  is_metal=False, in_custodian=False, number_nodes=None,
+                  auto_parallelization=False):
     """
     Set up a workflow to calculate the frequency dependent dielectric matrix.
     Starts with a geometry optimization.
@@ -243,7 +244,8 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              custodian=in_custodian,
-                             spec=spec)
+                             spec=spec,
+                             auto_parallelization=auto_parallelization)
 
     # 2. Set up the optics calculation
     vasp_input_params = _set_up_functional_params(functional)
@@ -266,7 +268,8 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         parents=optimize_fw,
         vasp_input_params=vasp_input_params,
         custodian=in_custodian,
-        spec=spec
+        spec=spec,
+        auto_parallelization=auto_parallelization
     )
 
     # Set up a clear name for the workflow
@@ -532,7 +535,6 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
             slab_terminations = slabgen.get_slabs()
 
             if len(slab_terminations) == 1:
-
                 slab = QSlab.from_slab(slab_terminations[0])
 
                 # Set up the directory for the slab calculations
@@ -553,7 +555,6 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
                       "termination...")
 
                 for slab, letter in zip(slab_terminations, ascii_lowercase):
-
                     slab = QSlab.from_slab(slab)
 
                     # Set up the directory for the slab calculations
