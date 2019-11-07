@@ -270,7 +270,9 @@ class VaspParallelizationTask(FiretaskBase):
 
             # Get the total number of cores
             try:
+                number_of_nodes = int(os.environ["PBS_NUM_NODES"])
                 number_of_cores = int(os.environ["PBS_NP"])
+                cores_per_node = number_of_cores / number_of_nodes
             except KeyError:
                 try:
                     number_of_nodes = int(os.environ["SLURM_NNODES"])
@@ -281,7 +283,9 @@ class VaspParallelizationTask(FiretaskBase):
                         "The VaspParallelizationTask currently only supports "
                         "PBS and SLURM schedulers.")
 
-            kpar = self._find_kpar(number_of_kpoints, number_of_cores)
+            kpar = self._find_kpar(number_of_kpoints,
+                                   number_of_cores,
+                                   cores_per_node)
 
             with open(os.path.join("parallel.out"), "w") as file:
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
@@ -301,17 +305,46 @@ class VaspParallelizationTask(FiretaskBase):
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
-    def _find_kpar(n_kpoints, n_cores):
+    def _find_kpar(n_kpoints, n_cores, cores_per_node):
 
-        suitable_divisors = np.array(
-            [i for i in list(range(n_cores, 0, -1))
-             if n_cores % i == 0 and i < n_kpoints]
+        ncores_divisors = np.array(
+            [i for i in list(range(1, n_cores)) if n_cores % i == 0]
         )
 
-        good_kpar_guess = np.sqrt(n_cores)
+        kpar_list = []
 
-        return suitable_divisors[
-            (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
+        for kpar in ncores_divisors:
+            if VaspParallelizationTask._find_core_waste(
+                    n_kpoints, kpar, n_cores) < cores_per_node / 2:
+                kpar_list.append(kpar)
+
+        return kpar_list[-1]  # Take the maximal KPAR
+
+    @staticmethod
+    def _find_ncore(cores_per_k):
+
+        divisors = np.array(
+            [i for i in list(range(1, cores_per_k)) if cores_per_k % i == 0]
+        )
+
+
+    @staticmethod
+    def _find_core_waste(n_kpoints, kpar, n_cores):
+
+        if n_cores % kpar != 0:
+            raise ValueError("KPAR is not a divisor of the number of available "
+                             "cores!")
+
+        kpar_groups = n_kpoints // kpar
+        if n_kpoints % kpar != 0.0:
+            kpar_groups += 1
+
+        if n_kpoints % kpar == 0:
+            lost_cores = 0
+        else:
+            lost_cores = (kpar - n_kpoints % kpar) * n_cores / kpar
+
+        return lost_cores / kpar_groups
 
 
 @explicit_serialize
