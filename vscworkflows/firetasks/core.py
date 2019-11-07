@@ -290,12 +290,14 @@ class VaspParallelizationTask(FiretaskBase):
 
         self._set_incar_parallelization(kpar)
 
-    def _set_incar_parallelization(self, kpar):
+    def _set_incar_parallelization(self, kpar, npar=None):
 
         directory = self.get("directory", os.getcwd())
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
         incar.update({"KPAR": kpar})
+        if npar is not None:
+            incar.update({"NPAR": npar})
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
