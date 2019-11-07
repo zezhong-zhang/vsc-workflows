@@ -219,25 +219,44 @@ class VaspParallelizationTask(FiretaskBase):
     the IBZKPT file is created, and then reads the number of irreducible kpoints
     from this file.
 
-    The current parallelization scheme simply finds the integer closest to the
-    square root of the number of cores that is lower than the number of kpoints.
-    NPAR is not even used!
-    # TODO: Do proper tests for an optimal parallelization scheme
+    The current parallelization scheme tries to maximize KPAR, which seems to
+    consistently improve scaling. However, it does consider the number of kpoints
+    in the calculation in order to make sure not too many resources are inactive
+    each electronic step. For NPAR, the algorithm tries to make sure NCORE as
+    close to the square root of the number of cores in a node, and set NPAR
+    accordingly, based on the number of cores/kpoint.
 
     Optional params:
         directory (str): Directory of the VASP run. If not specified, the Task
-        will run in the current directory.
+            will run in the current directory.
         KPAR (int): Override the KPAR value.
+        NPAR (int): Override the NPAR value.
 
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
 
-    optional_params = ["directory", "KPAR"]
+    optional_params = ["directory", "KPAR", "NPAR"]
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
         kpar = self.get("KPAR", None)
+        npar = self.get("NPAR", None)
+
+        # Get the total number of nodes/cores
+        try:
+            number_of_nodes = int(os.environ["PBS_NUM_NODES"])
+            number_of_cores = int(os.environ["PBS_NP"])
+            cores_per_node = number_of_cores / number_of_nodes
+        except KeyError:
+            try:
+                number_of_nodes = int(os.environ["SLURM_NNODES"])
+                cores_per_node = int(os.environ["SLURM_CPUS_ON_NODE"])
+                number_of_cores = number_of_nodes * cores_per_node
+            except KeyError:
+                raise NotImplementedError(
+                    "The VaspParallelizationTask currently only supports "
+                    "PBS and SLURM schedulers.")
 
         if kpar is None:
 
@@ -268,31 +287,21 @@ class VaspParallelizationTask(FiretaskBase):
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
                 number_of_kpoints = int(file.read().split('\n')[1])
 
-            # Get the total number of cores
-            try:
-                number_of_nodes = int(os.environ["PBS_NUM_NODES"])
-                number_of_cores = int(os.environ["PBS_NP"])
-                cores_per_node = number_of_cores / number_of_nodes
-            except KeyError:
-                try:
-                    number_of_nodes = int(os.environ["SLURM_NNODES"])
-                    cores_per_node = int(os.environ["SLURM_CPUS_ON_NODE"])
-                    number_of_cores = number_of_nodes * cores_per_node
-                except KeyError:
-                    raise NotImplementedError(
-                        "The VaspParallelizationTask currently only supports "
-                        "PBS and SLURM schedulers.")
-
             kpar = self._find_kpar(number_of_kpoints,
                                    number_of_cores,
                                    cores_per_node)
-
             with open(os.path.join("parallel.out"), "w") as file:
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
-                file.write("Number of cores = " + str(number_of_cores) + "\n")
-                file.write("Kpar = " + str(kpar) + "\n")
 
-        self._set_incar_parallelization(kpar)
+        if npar is None:
+            npar = self._find_npar(number_of_cores // kpar, cores_per_node)
+
+        with open(os.path.join("parallel.out"), "a+") as file:
+            file.write("Number of cores = " + str(number_of_cores) + "\n")
+            file.write("KPAR = " + str(kpar) + "\n")
+            file.write("NPAR = " + str(npar) + "\n")
+
+        self._set_incar_parallelization(kpar, npar)
 
     def _set_incar_parallelization(self, kpar, npar=None):
 
@@ -309,10 +318,11 @@ class VaspParallelizationTask(FiretaskBase):
 
         ncores_divisors = np.array(
             [i for i in list(range(1, n_cores)) if n_cores % i == 0]
-        )
+        )  # Do not consider KPAR = n_cores ^
 
         kpar_list = []
 
+        # Only consider kpars for which not too much core run time is wasted
         for kpar in ncores_divisors:
             if VaspParallelizationTask._find_core_waste(
                     n_kpoints, kpar, n_cores) < cores_per_node / 2:
@@ -321,12 +331,15 @@ class VaspParallelizationTask(FiretaskBase):
         return kpar_list[-1]  # Take the maximal KPAR
 
     @staticmethod
-    def _find_ncore(cores_per_k):
+    def _find_npar(cores_per_k, cores_per_node):
 
         divisors = np.array(
-            [i for i in list(range(1, cores_per_k)) if cores_per_k % i == 0]
+            [i for i in list(range(1, cores_per_k + 1)) if cores_per_k % i == 0]
         )
+        optimal_ncore = divisors[(np.abs(
+            divisors - np.sqrt(cores_per_node))).argmin()]
 
+        return cores_per_k // optimal_ncore
 
     @staticmethod
     def _find_core_waste(n_kpoints, kpar, n_cores):
