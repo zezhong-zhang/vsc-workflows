@@ -235,13 +235,16 @@ class VaspParallelizationTask(FiretaskBase):
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
 
-    optional_params = ["directory", "KPAR", "NPAR"]
+    optional_params = ["directory", "KPAR", "NPAR", "optimal_ncore"]
+    OPTIMAL_NCORE_DEFAULT = 8
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
         kpar = self.get("KPAR", None)
         npar = self.get("NPAR", None)
+        optimal_ncore = self.get("optimal_ncore",
+                                 VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT)
 
         # Get the total number of nodes/cores
         try:
@@ -294,7 +297,7 @@ class VaspParallelizationTask(FiretaskBase):
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
 
         if npar is None:
-            npar = self._find_npar(number_of_cores // kpar, cores_per_node)
+            npar = self._find_npar(number_of_cores // kpar, optimal_ncore)
 
         with open(os.path.join("parallel.out"), "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
@@ -331,15 +334,14 @@ class VaspParallelizationTask(FiretaskBase):
         return kpar_list[-1]  # Take the maximal KPAR
 
     @staticmethod
-    def _find_npar(cores_per_k, cores_per_node):
+    def _find_npar(cores_per_k, optimal_ncore):
 
         divisors = np.array(
             [i for i in list(range(1, cores_per_k + 1)) if cores_per_k % i == 0]
         )
-        optimal_ncore = divisors[(np.abs(
-            divisors - np.sqrt(cores_per_node))).argmin()]
+        ncore = divisors[(np.abs(divisors - optimal_ncore)).argmin()]
 
-        return cores_per_k // optimal_ncore
+        return cores_per_k // ncore
 
     @staticmethod
     def _find_core_waste(n_kpoints, kpar, n_cores):
