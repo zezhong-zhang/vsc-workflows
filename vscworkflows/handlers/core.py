@@ -16,7 +16,7 @@ from custodian.custodian import ErrorHandler
 from custodian.utils import backup
 
 """
-Package that contains all the fireworks to construct Workflows.
+Module that contains all the Custodian ErrorHandlers.
 
 """
 

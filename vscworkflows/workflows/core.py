@@ -8,7 +8,7 @@ from string import ascii_lowercase
 from fireworks import Workflow
 from monty.serialization import loadfn
 from pymatgen.core.surface import Slab, SlabGenerator
-from quotas import QSlab  # TODO: Remove dependency on quotas package!
+from vscworkflows.misc import QSlab
 
 from vscworkflows.fireworks.core import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW

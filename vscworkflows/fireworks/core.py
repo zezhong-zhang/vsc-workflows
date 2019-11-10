@@ -14,7 +14,8 @@ from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
 from vscworkflows.utils import vasp_input_update
 
 """
-Package that contains all the fireworks to construct Workflows.
+
+Module that contains all the fireworks to construct Workflows.
 
 """
 
