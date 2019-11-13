@@ -204,7 +204,6 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
     """
     is_monitor = True
-    raises_runtime_error = False
 
     def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005,
                  max_fit_range=40, output_data=False):
@@ -334,6 +333,7 @@ class ParallelizationTestMonitor(ErrorHandler):
 
     """
     is_monitor = True
+    raises_runtime_error = False
 
     def __init__(self, max_elec_steps=10, max_elec_step_time=1000):
         """
