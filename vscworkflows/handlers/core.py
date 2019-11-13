@@ -335,7 +335,7 @@ class ParallelizationTestMonitor(ErrorHandler):
     is_monitor = True
     is_terminating = False
     raises_runtime_error = False
-    max_num_corrections = 0
+    max_num_corrections = 1
 
     def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
         """
