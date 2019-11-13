@@ -361,6 +361,9 @@ class ParallelizationTestMonitor(ErrorHandler):
             if max_loop > self.max_elec_step_time:
                 return True
 
+        with open("temp.out", "w") as file:
+            file.write("Number of steps: " + str(len(loop_timing)))
+
         if len(loop_timing) > self.max_elec_steps + nelmdl:
             return True
         else:
