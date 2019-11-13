@@ -347,6 +347,10 @@ class ParallelizationTestMonitor(ErrorHandler):
         self.max_elec_step_time = max_elec_step_time
 
     def check(self):
+
+        vi = VaspInput.from_directory(".")
+        nelmdl = abs(vi["INCAR"].get("NELMDL", -5))
+
         loop_pattern = r"\s+LOOP:\s+cpu\stime\s+\S+:\sreal\stime\s+(\S+)"
         loop_timing = regrep(
             filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
@@ -355,7 +359,7 @@ class ParallelizationTestMonitor(ErrorHandler):
             if max_loop > self.max_elec_step_time:
                 return True
 
-        if len(loop_timing) > self.max_elec_steps:
+        if len(loop_timing) > self.max_elec_steps + nelmdl:
             return True
         else:
             return False
