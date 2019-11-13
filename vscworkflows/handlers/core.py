@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from collections import Counter
+from monty.re import regrep
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.outputs import Oszicar
@@ -16,7 +17,7 @@ from custodian.custodian import ErrorHandler
 from custodian.utils import backup
 
 """
-Package that contains all the fireworks to construct Workflows.
+Module that contains all the Custodian ErrorHandlers.
 
 """
 
@@ -205,7 +206,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     is_monitor = True
 
     def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005,
-                 max_interp_range=40, output_data=False):
+                 max_fit_range=40, output_data=False):
         """
         Initializes the handler with the output file to check.
 
@@ -216,11 +217,15 @@ class ElectronicConvergenceMonitor(ErrorHandler):
                 logarithm of the residual charge. If this value is exceeded,
                 the check method returns positive and the monitor kills the job
                 and corrects.
+            max_fit_range (int): Maximum number of steps to consider for the
+                linear fit.
+            output_data (bool): Output the results of the checks, as well as a
+                .png file of the incline per electronic step.
 
         """
         self.min_electronic_steps = min_electronic_steps
         self.max_allowed_incline = max_allowed_incline
-        self.max_interp_range = max_interp_range
+        self.max_interp_range = max_fit_range
         self.output_data = output_data
 
     def check(self):
@@ -318,3 +323,51 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         # Unfixable error. Just return None for actions.
         else:
             return {"errors": ["Non-converging job"], "actions": None}
+
+
+class ParallelizationTestMonitor(ErrorHandler):
+    """
+    Monitor that should run during calculations for parallelization tests. Will
+    shut down the calculation once a specified number of electronic steps have run,
+    or in case the time for one electronic step is larger than some threshold.
+
+    """
+    is_monitor = True
+    is_terminating = False
+    raises_runtime_error = False
+    max_num_corrections = 0
+
+    def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
+        """
+        Initializes the handler with the output file to check.
+
+        Args:
+            max_elec_step_time (float): Maximum allowed time per electronic step.
+
+        """
+        self.max_elec_steps = max_elec_steps
+        self.max_elec_step_time = max_elec_step_time
+
+    def check(self):
+
+        vi = VaspInput.from_directory(".")
+        nelmdl = abs(vi["INCAR"].get("NELMDL", -5))
+
+        loop_pattern = r"\s+LOOP:\s+cpu\stime\s+\S+:\sreal\stime\s+(\S+)"
+        loop_timing = regrep(
+            filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
+        if len(loop_timing) > 0:
+            max_loop = np.max([float(e[0][0]) for e in loop_timing])
+            if max_loop > self.max_elec_step_time:
+                return True
+
+        if len(loop_timing) > self.max_elec_steps + nelmdl:
+            return True
+        else:
+            return False
+
+    def correct(self):
+        return {"errors": ["Parallelization Monitor"],
+                "actions": {"dict": "STOPCAR",
+                            "action": {"_set": {"LABORT": True}}}
+                }

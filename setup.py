@@ -6,13 +6,16 @@ setup(
     author="Marnik Bercx",
     packages=find_packages(where=".", exclude="docs"),
     install_requires=[
+        "numpy",
         "pymatgen",
         "custodian",
         "fireworks",
         "atomate",
         "dnspython",
         "click",
-        "monty"
+        "monty",
+        "icet",
+        "tabulate"
     ],
     entry_points='''
         [console_scripts]

@@ -21,8 +21,7 @@ from pymatgen.io.vasp.inputs import Incar, Kpoints
 from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from pymatgen.io.vasp.sets import get_vasprun_outcar, get_structure_from_prev_run
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from quotas import QSlab
-from pybat import Cathode
+from vscworkflows.misc import QSlab, Cathode
 
 """
 Definition of the FireTasks for the workflows.
