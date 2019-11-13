@@ -351,12 +351,12 @@ class ParallelizationTestMonitor(ErrorHandler):
             filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
         max_loop = np.max([float(e[0][0]) for e in loop_timing])
 
-        if len(loop_timing) > self.max_elec_steps \
-                or max_loop > self.max_elec_step_time:
+        if len(loop_timing) > self.max_elec_steps:
+            return True
+        elif max_loop > self.max_elec_step_time:
             return True
         else:
             return False
 
     def correct(self):
-        with open("STOPCAR", "w") as file:
-            file.write("LABORT = True")
+        return  {"errors": ["Parallelization Monitor"], "actions": None}
