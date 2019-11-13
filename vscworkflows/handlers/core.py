@@ -350,11 +350,12 @@ class ParallelizationTestMonitor(ErrorHandler):
         loop_pattern = r"\s+LOOP:\s+cpu\stime\s+\S+:\sreal\stime\s+(\S+)"
         loop_timing = regrep(
             filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
-        max_loop = np.max([float(e[0][0]) for e in loop_timing])
+        if len(loop_timing) > 0:
+            max_loop = np.max([float(e[0][0]) for e in loop_timing])
+            if max_loop > self.max_elec_step_time:
+                return True
 
         if len(loop_timing) > self.max_elec_steps:
-            return True
-        elif max_loop > self.max_elec_step_time:
             return True
         else:
             return False
