@@ -3,6 +3,7 @@
 # Distributed under the terms of the MIT License
 
 import os
+import numpy as np
 
 from string import ascii_lowercase
 from fireworks import Workflow
@@ -580,3 +581,63 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     workflow_name += " " + str(functional)
 
     return Workflow(fireworks=fireworks, name=workflow_name)
+
+
+def get_wf_parallel(structure, directory, nodes, nbands=None,
+                    functional=("pbe", {}), user_kpoints_settings=None,
+                    user_incar_settings=None, handlers=None, cores_per_node=28,
+                    kpar_range=None, min_npar=1):
+    # Set defaults
+    user_kpoints_settings = user_kpoints_settings or {"reciprocal_density": 300}
+    user_incar_settings = user_incar_settings or {}
+    handlers = handlers or []
+    n_cores = int(cores_per_node * nodes)
+    kpar_range = kpar_range or [1, n_cores]
+
+    fw_list = []
+
+    suitable_kpars = np.array(
+        [i for i in range(kpar_range[0], kpar_range[1] + 1)
+         if n_cores % i == 0]
+    )
+
+    for kpar in suitable_kpars:
+
+        cores_per_k = n_cores / kpar
+
+        suitable_npars = np.array(
+            [i for i in range(min_npar, int(cores_per_k) + 1)
+             if cores_per_k % i == 0]
+        )
+
+        if nbands is not None:
+            suitable_npars = [npar for npar in suitable_npars if nbands % npar == 0]
+
+        for npar in suitable_npars:
+            spec = {}
+            # Set up the static calculation
+            spec.update({"_launch_dir": os.path.join(
+                directory, str(nodes) + "nodes", str(kpar) + "kpar",
+                           str(npar) + "npar"
+            )})
+            spec.update({"_fworker": str(nodes) + "nodes"})
+
+            vasp_input_params = _set_up_functional_params(functional)
+            vasp_input_params["user_kpoints_settings"] = user_kpoints_settings
+            vasp_input_params["user_incar_settings"].update(user_incar_settings)
+            vasp_input_params["user_incar_settings"].update(
+                {"KPAR": kpar, "NPAR": npar})
+            vasp_input_params["force_gamma"] = True
+
+            # Set up the Firework and add it to the list
+            fw_list.append(
+                StaticFW(structure=structure,
+                         vasp_input_params=vasp_input_params,
+                         spec=spec,
+                         custodian=handlers)
+            )
+
+    workflow_name = "Parallel-Test: " + str(nodes) + "nodes."
+
+    # Create the workflow
+    return Workflow(fireworks=fw_list, name=workflow_name)
