@@ -337,12 +337,13 @@ class ParallelizationTestMonitor(ErrorHandler):
     raises_runtime_error = False
     max_num_corrections = 1
 
-
     def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
         """
         Initializes the handler with the output file to check.
 
         Args:
+            max_elec_steps (int): Maximum number self-consistent steps (i.e.
+                excluding the first NELMDL steps).
             max_elec_step_time (float): Maximum allowed time per electronic step.
 
         """
