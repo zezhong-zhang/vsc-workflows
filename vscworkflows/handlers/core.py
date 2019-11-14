@@ -2,7 +2,7 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import subprocess
+import subprocess, os, time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -375,3 +375,116 @@ class ParallelizationTestMonitor(ErrorHandler):
 
         return {"errors": ["Parallelization Monitor"],
                 "actions": None}
+
+
+class JobTerminator(ErrorHandler):
+    """
+    Looks for Errors in stdout and terminates the job without any corrections.
+
+    """
+    is_monitor = True
+
+    error_msgs = {
+        "tet": ["Tetrahedron method fails for NKPT<4",
+                "Fatal error detecting k-mesh",
+                "Fatal error: unable to match k-point",
+                "Routine TETIRR needs special values",
+                "Tetrahedron method fails (number of k-points < 4)"],
+        "inv_rot_mat": ["inverse of rotation matrix was not found (increase "
+                        "SYMPREC)"],
+        "brmix": ["BRMIX: very serious problems"],
+        "subspacematrix": ["WARNING: Sub-Space-Matrix is not hermitian in "
+                           "DAV"],
+        "tetirr": ["Routine TETIRR needs special values"],
+        "incorrect_shift": ["Could not get correct shifts"],
+        "real_optlay": ["REAL_OPTLAY: internal error",
+                        "REAL_OPT: internal ERROR"],
+        "rspher": ["ERROR RSPHER"],
+        "dentet": ["DENTET"],
+        "too_few_bands": ["TOO FEW BANDS"],
+        "triple_product": ["ERROR: the triple product of the basis vectors"],
+        "rot_matrix": ["Found some non-integer element in rotation matrix"],
+        "brions": ["BRIONS problems: POTIM should be increased"],
+        "pricel": ["internal error in subroutine PRICEL"],
+        "zpotrf": ["LAPACK: Routine ZPOTRF failed"],
+        "amin": ["One of the lattice vectors is very long (>50 A), but AMIN"],
+        "zbrent": ["ZBRENT: fatal internal in",
+                   "ZBRENT: fatal error in bracketing"],
+        "pssyevx": ["ERROR in subspace rotation PSSYEVX"],
+        "eddrmm": ["WARNING in EDDRMM: call to ZHEGV failed"],
+        "edddav": ["Error EDDDAV: Call to ZHEGV failed"],
+        "grad_not_orth": [
+            "EDWAV: internal error, the gradient is not orthogonal"],
+        "nicht_konv": ["ERROR: SBESSELITER : nicht konvergent"],
+        "zheev": ["ERROR EDDIAG: Call to routine ZHEEV failed!"],
+        "elf_kpar": ["ELF: KPAR>1 not implemented"],
+        "elf_ncl": ["WARNING: ELF not implemented for non collinear case"],
+        "rhosyg": ["RHOSYG internal error"],
+        "posmap": ["POSMAP internal error: symmetry equivalent atom not found"],
+        "point_group": ["Error: point group operation missing"]
+    }
+
+    def __init__(self, output_filename="vasp.out", natoms_large_cell=100,
+                 errors_subset_to_catch=None, timeout=28800):
+        """
+        Initializes the handler with the output file to check.
+
+        Args:
+            output_filename (str): This is the file where the stdout for vasp
+                is being redirected. The error messages that are checked are
+                present in the stdout. Defaults to "vasp.out", which is the
+                default redirect used by :class:`custodian.vasp.jobs.VaspJob`.
+            natoms_large_cell (int): Number of atoms threshold to treat cell
+                as large. Affects the correction of certain errors. Defaults to
+                100.
+            errors_subset_to_catch(list): A subset of errors to catch. The
+                default is None, which means all supported errors are detected.
+                Use this to only catch only a subset of supported errors.
+                E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev
+                errors, and not others. If you wish to only excluded one or
+                two of the errors, you can create this list by the following
+                lines:
+
+                ```
+                subset = list(VaspErrorHandler.error_msgs.keys())
+                subset.pop("eddrrm")
+
+                handler = VaspErrorHandler(errors_subset_to_catch=subset)
+                ```
+        """
+        self.output_filename = output_filename
+        self.errors = set()
+        self.error_count = Counter()
+        # threshold of number of atoms to treat the cell as large.
+        self.natoms_large_cell = natoms_large_cell
+        self.errors_subset_to_catch = errors_subset_to_catch or \
+                                      list(JobTerminator.error_msgs.keys())
+        self.timeout = timeout
+
+    def check(self):
+        incar = Incar.from_file("INCAR")
+        self.errors = set()
+        with open(self.output_filename, "r") as f:
+            for line in f:
+                l = line.strip()
+                for err, msgs in JobTerminator.error_msgs.items():
+                    if err in self.errors_subset_to_catch:
+                        for msg in msgs:
+                            if l.find(msg) != -1:
+                                # this checks if we want to run a charged
+                                # computation (e.g., defects) if yes we don't
+                                # want to kill it because there is a change in
+                                # e-density (brmix error)
+                                if err == "brmix" and 'NELECT' in incar:
+                                    continue
+                                self.errors.add(err)
+
+        st = os.stat(self.output_filename)
+        if time.time() - st.st_mtime > self.timeout:
+            return True
+
+        return len(self.errors) > 0
+
+    def correct(self):
+
+        return {"errors": ["Parallelization Monitor"], "actions": None}
