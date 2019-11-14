@@ -299,8 +299,8 @@ class MDSet(DictSet):
                     'NELMIN': 4, 'LREAL': True, 'BMIX': 1,
                     'MAXMIX': 20, 'NELM': 500, 'NSIM': 4, 'ISYM': 0,
                     'ISIF': 0, 'IBRION': 0, 'NBLOCK': 1, 'KBLOCK': 100,
-                    'SMASS': 0, 'POTIM': time_step, 'PREC': 'Low',
-                    'ISPIN': 2,
+                    'SMASS': 3, 'POTIM': time_step, 'PREC': 'Low',
+                    'ISPIN': 1,
                     "LDAU": False}
 
         self.start_temp = start_temp
