@@ -10,7 +10,7 @@ from vscworkflows.firetasks.core import VaspTask, VaspCustodianTask, \
     VaspParallelizationTask, IncreaseNumberOfBands, PulayTask, WriteVaspFromIOSet, \
     AddFinalGeometryToSpec
 from vscworkflows.setup.sets import BulkStaticSet, BulkOptimizeSet, \
-    SlabStaticSet, SlabOptimizeSet
+    SlabStaticSet, SlabOptimizeSet, MDSet
 from vscworkflows.utils import vasp_input_update
 
 """
@@ -492,3 +492,58 @@ class SlabDosFW(Firework):
         tasks.append(AddFinalGeometryToSpec())
 
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
+
+class MDFW(Firework):
+
+    def __init__(self, structure, start_temp, end_temp, nsteps,
+                 name="molecular dynamics",
+                 vasp_input_params=None, parents=None, spec=None,
+                 custodian=False, auto_parallelization=False):
+        """
+        Standard firework for a single MD run.
+
+        Args:
+            structure (Structure): Input structure.
+            start_temp (float): Start temperature of MD run.
+            end_temp (float): End temperature of MD run.
+            nsteps (int): Number of MD steps
+            name (string): Name for the Firework.
+            vasp_input_params (dict): If this is not None,
+                these params are passed to the default vasp_input_set, i.e.,
+                MITMDSet. This allows one to easily override some
+                settings, e.g., user_incar_settings, etc. Particular to MD,
+                one can control time_step and all other settings of the input set.
+            copy_vasp_outputs (bool): Whether to copy outputs from previous run. Defaults to True.
+            db_file (string): Path to file specifying db credentials.
+            parents (Firework): Parents of this particular Firework. FW or list of FWS.
+            \*\*kwargs: Other kwargs that are passed to Firework.__init__.
+        """
+
+        tasks = list()
+        vasp_input_params = vasp_input_params or {}
+
+        tasks.append(WriteVaspFromIOSet(
+            vasp_input_set=MDSet(structure,
+                                 start_temp=start_temp,
+                                 end_temp=end_temp,
+                                 nsteps=nsteps,
+                                 **vasp_input_params)
+        ))
+
+        # Configure the parallelization settings
+        if auto_parallelization:
+            tasks.append(VaspParallelizationTask())
+
+        # Run the calculation
+        if custodian is True:
+            tasks.append(VaspCustodianTask())
+        elif isinstance(custodian, list):
+            assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+                "Not all elements in 'custodian' list are instances of " \
+                "the ErrorHandler class!"
+            tasks.append(VaspCustodianTask(handlers=custodian))
+        else:
+            tasks.append(VaspTask())
+
+        super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
+

@@ -265,3 +265,74 @@ class SlabOptimizeSet(DictSet):
             kpoints = super().kpoints
             kpoints.kpts[0][2] = 1  # Only one k-point in c-direction for slab
             return kpoints
+
+class MDSet(DictSet):
+    """
+    Clas for writing a vasp md run. This DOES NOT do multiple stage
+    runs.
+
+    Args:
+        structure (Structure): Input structure.
+        start_temp (int): Starting temperature.
+        end_temp (int): Final temperature.
+        nsteps (int): Number of time steps for simulations. NSW parameter.
+        time_step (int): The time step for the simulation. The POTIM
+            parameter. Defaults to 2fs.
+        spin_polarized (bool): Whether to do spin polarized calculations.
+            The ISPIN parameter. Defaults to False.
+        **kwargs: Other kwargs supported by :class:`DictSet`.
+    """
+
+    def __init__(self, structure, start_temp, end_temp, nsteps, time_step=2, **kwargs):
+
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=_load_yaml_config("relaxSet")
+        )
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
+        self.kwargs = kwargs
+
+        # MD default settings
+        defaults = {'TEBEG': start_temp, 'TEEND': end_temp, 'NSW': nsteps,
+                    'EDIFF_PER_ATOM': 0.000001, 'LSCALU': False,
+                    'LCHARG': False,
+                    'LPLANE': False, 'LWAVE': True, 'ISMEAR': 0,
+                    'NELMIN': 4, 'LREAL': True, 'BMIX': 1,
+                    'MAXMIX': 20, 'NELM': 500, 'NSIM': 4, 'ISYM': 0,
+                    'ISIF': 0, 'IBRION': 0, 'NBLOCK': 1, 'KBLOCK': 100,
+                    'SMASS': 0, 'POTIM': time_step, 'PREC': 'Low',
+                    'ISPIN': 2,
+                    "LDAU": False}
+
+        self.start_temp = start_temp
+        self.end_temp = end_temp
+        self.nsteps = nsteps
+        self.time_step = time_step
+        self.kwargs = kwargs
+
+        # use VASP default ENCUT
+        # self._config_dict["INCAR"].pop('ENCUT', None)
+
+        if defaults['ISPIN'] == 1:
+            self._config_dict["INCAR"].pop('MAGMOM', None)
+        self._config_dict["INCAR"].update(defaults)
+
+    @property
+    def kpoints(self):
+        """
+        Sets up the k-points for the static calculation.
+
+        Returns:
+            :class: pymatgen.io.vasp.inputs.Kpoints
+
+        """
+        settings = self.user_kpoints_settings or self._config_dict["KPOINTS"]
+
+        if "k_resolution" in settings:
+            # Use k_resolution to calculate kpoints
+            k_kpoint_resolution = settings["k_resolution"]
+            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
+                             self.structure.lattice.reciprocal_lattice.lengths]
+
+            return Kpoints.gamma_automatic(kpts=kpt_divisions)
+        else:
+            return super().kpoints
