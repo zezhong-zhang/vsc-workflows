@@ -335,7 +335,6 @@ class ParallelizationTestMonitor(ErrorHandler):
     is_monitor = True
     is_terminating = False
     raises_runtime_error = False
-    max_num_corrections = 1
 
     def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
         """
@@ -370,7 +369,9 @@ class ParallelizationTestMonitor(ErrorHandler):
             return False
 
     def correct(self):
+
+        with open("STOPCAR", "w") as file:
+            file.write("LABORT = True")
+
         return {"errors": ["Parallelization Monitor"],
-                "actions": {"dict": "STOPCAR",
-                            "action": {"_set": {"LABORT": True}}}
-                }
+                "actions": None}
