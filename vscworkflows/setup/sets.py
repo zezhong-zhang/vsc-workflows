@@ -268,49 +268,52 @@ class SlabOptimizeSet(DictSet):
 
 class MDSet(DictSet):
     """
-    Clas for writing a vasp md run. This DOES NOT do multiple stage
-    runs.
+     Class for writing a vasp md run. This DOES NOT do multiple stage
+     runs.
+     """
 
-    Args:
-        structure (Structure): Input structure.
-        start_temp (int): Starting temperature.
-        end_temp (int): Final temperature.
-        nsteps (int): Number of time steps for simulations. NSW parameter.
-        time_step (int): The time step for the simulation. The POTIM
-            parameter. Defaults to 2fs.
-        spin_polarized (bool): Whether to do spin polarized calculations.
-            The ISPIN parameter. Defaults to False.
-        **kwargs: Other kwargs supported by :class:`DictSet`.
-    """
+    def __init__(self, structure, start_temp, end_temp, nsteps, time_step=2,
+                 spin_polarized=False, **kwargs):
+        r"""
 
-    def __init__(self, structure, start_temp, end_temp, nsteps, time_step=2, **kwargs):
-
-        config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=_load_yaml_config("relaxSet")
-        )
-        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
-        self.kwargs = kwargs
-
+        Args:
+            structure (Structure): Input structure.
+            start_temp (int): Starting temperature.
+            end_temp (int): Final temperature.
+            nsteps (int): Number of time steps for simulations. NSW parameter.
+            time_step (int): The time step for the simulation. The POTIM
+                parameter. Defaults to 2fs.
+            spin_polarized (bool): Whether to do spin polarized calculations.
+                The ISPIN parameter. Defaults to False.
+            **kwargs: Other kwargs supported by :class:`DictSet`.
+        """
         # MD default settings
         defaults = {'TEBEG': start_temp, 'TEEND': end_temp, 'NSW': nsteps,
-                    'EDIFF_PER_ATOM': 0.000001, 'LSCALU': False,
+                    'EDIFF_PER_ATOM': 1E-5, 'LSCALU': False,
                     'LCHARG': False,
                     'LPLANE': False, 'LWAVE': True, 'ISMEAR': 0,
-                    'NELMIN': 4, 'LREAL': True, 'BMIX': 1,
+                    'NELMIN': 4, 'LREAL': 'Auto', 'BMIX': 1,
                     'MAXMIX': 20, 'NELM': 500, 'NSIM': 4, 'ISYM': 0,
                     'ISIF': 0, 'IBRION': 0, 'NBLOCK': 1, 'KBLOCK': 100,
-                    'SMASS': 3, 'POTIM': time_step, 'PREC': 'Low',
-                    'ISPIN': 1,
+                    'SMASS': 3, 'POTIM': time_step, 'PREC': 'Normal',
+                    'ISPIN': 2 if spin_polarized else 1,
                     "LDAU": False}
+
+        config_dict = _set_structure_incar_settings(
+            structure=structure, config_dict=_load_yaml_config("MDSet")
+        )
+
+        super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
         self.start_temp = start_temp
         self.end_temp = end_temp
         self.nsteps = nsteps
         self.time_step = time_step
+        self.spin_polarized = spin_polarized
         self.kwargs = kwargs
 
         # use VASP default ENCUT
-        # self._config_dict["INCAR"].pop('ENCUT', None)
+        self._config_dict["INCAR"].pop('ENCUT', None)
 
         if defaults['ISPIN'] == 1:
             self._config_dict["INCAR"].pop('MAGMOM', None)
