@@ -32,7 +32,6 @@ INCAR:
   KBLOCK: 100
   SMASS: 0
   POTIM: 2
-  ISPIN: 1
 KPOINTS:
   reciprocal_density: 100
 POTCAR:
