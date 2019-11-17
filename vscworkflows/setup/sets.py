@@ -289,15 +289,8 @@ class MDSet(DictSet):
         """
         # MD default settings
         defaults = {'TEBEG': start_temp, 'TEEND': end_temp, 'NSW': nsteps,
-                    'EDIFF_PER_ATOM': 1E-5, 'LSCALU': False,
-                    'LCHARG': False,
-                    'LPLANE': False, 'LWAVE': True, 'ISMEAR': 0,
-                    'NELMIN': 4, 'LREAL': 'Auto', 'BMIX': 1,
-                    'MAXMIX': 20, 'NELM': 500, 'NSIM': 4, 'ISYM': 0,
-                    'ISIF': 0, 'IBRION': 0, 'NBLOCK': 1, 'KBLOCK': 100,
-                    'SMASS': 3, 'POTIM': time_step, 'PREC': 'Normal',
-                    'ISPIN': 2 if spin_polarized else 1,
-                    "LDAU": False}
+                    'POTIM': time_step,
+                    'ISPIN': 2 if spin_polarized else 1}
 
         config_dict = _set_structure_incar_settings(
             structure=structure, config_dict=_load_yaml_config("MDSet")

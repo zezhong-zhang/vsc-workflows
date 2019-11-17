@@ -1,8 +1,10 @@
 # Standard calculation settings for geometry optimizations
 INCAR:
   ALGO: Fast
+  ADDGRID: true
   EDIFF: 1.0e-05
   EDIFFG: -0.01
+  EDIFF_PER_ATOM: 1.0e-05
   ENCUT: 500
   IBRION: 0
   ISIF: 0
@@ -10,13 +12,27 @@ INCAR:
   ISPIN: 1
   LASPH: true
   LCHARG: false
-  LWAVE: false
-  NELM: 100
-  NELMIN: 5
+  LWAVE: true
+  LPLANE: false
+  LSCALU: false
+  LDAU: false
+  LREAL: Auto
+  NELM: 500
+  NELMIN: 4
   NSW: 300
   NWRITE: 1
   PREC: Normal
   SIGMA: 0.05
+  ICHARG: 1
+  ISYM: 0
+  BMIX: 1
+  MAXMIX: 40
+  NSIM: 4
+  NBLOCK: 1
+  KBLOCK: 100
+  SMASS: 0
+  POTIM: 2
+  ISPIN: 1
 KPOINTS:
   reciprocal_density: 100
 POTCAR:
