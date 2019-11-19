@@ -223,15 +223,16 @@ class VaspParallelizationTask(FiretaskBase):
         1. Is a divisor of the total number of cores.
         2. Do not waste too many resources over a single electronic step.
 
-    It then takes the value with index KPOINTS_LIST_CHOICE from this list. The
-    current default does not take the maximal KPAR, but one just below that. So
-    far that seems to result in reasonable KPAR picks.
-
-    For NCORE, the algorithm tries to make sure it is as close to a specified
-    number. The default, OPTIMAL_NCORE_DEFAULT = 2, was set based on a rough
-    analysis based on the get_wf_parallel() workflow. However, it is clear that
-    this value can be very system specific. We'll have to do more testing to come
-    up with a more sophisticated algorithm.
+    # TODO Correct this
+    # It then takes the value with index KPOINTS_LIST_CHOICE from this list. The
+    # current default does not take the maximal KPAR, but one just below that. So
+    # far that seems to result in reasonable KPAR picks.
+    #
+    # For NCORE, the algorithm tries to make sure it is as close to a specified
+    # number. The default, OPTIMAL_NCORE_DEFAULT = 2, was set based on a rough
+    # analysis based on the get_wf_parallel() workflow. However, it is clear that
+    # this value can be very system specific. We'll have to do more testing to come
+    # up with a more sophisticated algorithm.
 
     Optional params:
         directory (str): Directory of the VASP run. If not specified, the Task
@@ -243,16 +244,16 @@ class VaspParallelizationTask(FiretaskBase):
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
 
-    optional_params = ["directory", "KPAR", "NCORE", "optimal_ncore"]
-    OPTIMAL_NCORE_DEFAULT = 2
-    KPAR_LIST_CHOICE = -2
+    optional_params = ["directory", "NBANDS", "KPAR", "NCORE", "optimal_ncore"]
+    OPTIMAL_NCORE_DEFAULT = 7
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
+        nbands = self.get("NBANDS", None)
         kpar = self.get("KPAR", None)
         ncore = self.get("NCORE", None)
-        optimal_ncore = self.get("optimal_ncore",
+        opt_ncore = self.get("optimal_ncore",
                                  VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT)
 
         # Get the total number of nodes/cores
@@ -271,6 +272,10 @@ class VaspParallelizationTask(FiretaskBase):
                     "PBS and SLURM schedulers.")
 
         if kpar is None:
+
+            if ncore is not None:
+                raise NotImplementedError("Specifying NCORE but not KPAR is "
+                                          "currently not possible.")
 
             os.chdir(directory)
             stdout_file = os.path.join(directory, "temp.out")
@@ -299,14 +304,34 @@ class VaspParallelizationTask(FiretaskBase):
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
                 number_of_kpoints = int(file.read().split('\n')[1])
 
-            kpar = self._find_kpar(number_of_kpoints,
-                                   number_of_cores,
-                                   cores_per_node)
+            kpar_list = self._find_kpar_list(number_of_kpoints,
+                                             number_of_cores,
+                                             cores_per_node)
+
             with open(os.path.join("parallel.out"), "w") as file:
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
 
-        if ncore is None:
-            ncore = self._find_ncore(number_of_cores // kpar, optimal_ncore)
+            choice = {"kpar": 0, "ncore": 0}
+
+            for k in kpar_list:
+                nc = self._find_ncore(
+                    cores_per_k=number_of_cores // k,
+                    optimal_ncore=opt_ncore,
+                    nbands=nbands
+                )
+                if abs(nc - opt_ncore) <= abs(choice["ncore"] - opt_ncore):
+                    if k > choice["kpar"]:
+                        choice = {"kpar": k, "ncore": nc}
+
+            kpar = choice["kpar"]
+            ncore = choice["ncore"]
+
+        elif ncore is None:
+            ncore = self._find_ncore(
+                cores_per_k=number_of_cores // kpar,
+                optimal_ncore=opt_ncore,
+                nbands=nbands
+            )
 
         with open(os.path.join("parallel.out"), "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
@@ -326,7 +351,7 @@ class VaspParallelizationTask(FiretaskBase):
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
-    def _find_kpar(n_kpoints, n_cores, cores_per_node):
+    def _find_kpar_list(n_kpoints, n_cores, cores_per_node):
 
         ncores_divisors = np.array(
             [i for i in list(range(1, n_cores + 1)) if n_cores % i == 0]
@@ -336,18 +361,41 @@ class VaspParallelizationTask(FiretaskBase):
 
         # Only consider kpars for which not too much core run time is wasted
         for kpar in ncores_divisors:
-            if VaspParallelizationTask._find_core_waste(
-                    n_kpoints, kpar, n_cores) < cores_per_node / 2:
+
+            # print("kpar " + str(kpar))
+
+            core_waste = VaspParallelizationTask._find_core_waste(
+                n_kpoints, kpar, n_cores)
+
+            # print("core_waste " + str(core_waste))
+
+            too_much_waste = core_waste > cores_per_node
+            waste_fraction = core_waste / n_cores
+
+            # print("waste_fraction " + str(waste_fraction))
+            too_much_waste = too_much_waste or waste_fraction >= 1 / 3
+
+            if not too_much_waste:
                 kpar_list.append(kpar)
 
-        return kpar_list[VaspParallelizationTask.KPAR_LIST_CHOICE]
+        print(kpar_list)
+
+        # kpar_list_choice = -int((np.log10(n_kpoints) // 1) + 1)
+
+        return kpar_list
 
     @staticmethod
-    def _find_ncore(cores_per_k, optimal_ncore):
+    def _find_ncore(cores_per_k, optimal_ncore, nbands=None):
 
         divisors = np.array(
             [i for i in list(range(1, cores_per_k + 1)) if cores_per_k % i == 0]
         )
+
+        if nbands:
+            divisors = np.array(
+                [i for i in divisors if nbands % (cores_per_k // i) == 0]
+            )
+
         ncore = divisors[(np.abs(divisors - optimal_ncore)).argmin()]
 
         return ncore
@@ -360,6 +408,7 @@ class VaspParallelizationTask(FiretaskBase):
                              "cores!")
 
         kpar_groups = n_kpoints // kpar
+
         if n_kpoints % kpar != 0.0:
             kpar_groups += 1
 
