@@ -126,7 +126,6 @@ class OptimizeFW(Firework):
         tasks = list()
         vasp_input_params = vasp_input_params or {}
 
-        # NEW CODE
         if structure is not None:
             tasks.append(WriteVaspFromIOSet(
                 vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
@@ -140,11 +139,6 @@ class OptimizeFW(Firework):
         else:
             raise ValueError("Please provide either an input "
                              "structure or a parent Firework.")
-
-        # OLD CODE - kept temporarily
-        # tasks.append(WriteVaspFromIOSet(
-        #     vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
-        # ))
 
         # Configure the parallelization settings
         if auto_parallelization:
