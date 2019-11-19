@@ -99,7 +99,7 @@ class StaticFW(Firework):
 
 class OptimizeFW(Firework):
 
-    def __init__(self, structure, name="Geometry Optimization",
+    def __init__(self, structure=None, name="Geometry Optimization",
                  vasp_input_params=None, parents=None, spec=None,
                  custodian=False, auto_parallelization=False,
                  pulay_condition=None, pulay_tolerance=None):
@@ -126,9 +126,25 @@ class OptimizeFW(Firework):
         tasks = list()
         vasp_input_params = vasp_input_params or {}
 
-        tasks.append(WriteVaspFromIOSet(
-            vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
-        ))
+        # NEW CODE
+        if structure is not None:
+            tasks.append(WriteVaspFromIOSet(
+                vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
+            ))
+        elif parents is not None:  # TODO What if multiple parents?
+            tasks.append(WriteVaspFromIOSet(
+                parents=parents,
+                vasp_input_set="vscworkflows.setup.sets.BulkOptimizeSet",
+                vasp_input_params=vasp_input_params
+            ))
+        else:
+            raise ValueError("Please provide either an input "
+                             "structure or a parent Firework.")
+
+        # OLD CODE - kept temporarily
+        # tasks.append(WriteVaspFromIOSet(
+        #     vasp_input_set=BulkOptimizeSet(structure, **vasp_input_params)
+        # ))
 
         # Configure the parallelization settings
         if auto_parallelization:
