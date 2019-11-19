@@ -200,8 +200,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 
 
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
-                  is_metal=False, in_custodian=False, number_nodes=None,
-                  auto_parallelization=False):
+                  is_metal=False, user_incar_settings=None, in_custodian=False,
+                  number_nodes=None, auto_parallelization=False):
     """
     Set up a workflow to calculate the frequency dependent dielectric matrix.
     Starts with a geometry optimization.
@@ -220,6 +220,11 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             metal, which changes the smearing from Gaussian (0.05 eV) to second
             order Methfessel-Paxton of 0.2 eV; the optics calculation will use a
             generous gaussian smearing of 0.3 eV instead of the tetrahedron method.
+        user_incar_settings (dict): User INCAR settings. This allows a user
+                to override INCAR settings, e.g., setting a different MAGMOM for
+                various elements or species, or specify parallelization settings (
+                KPAR, NPAR, ...). Note that the settings specified here will
+                override the INCAR settings for ALL fireworks of the workflow.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
@@ -245,6 +250,10 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
 
+    # Override the INCAR settings with the user specifications
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
+
     # Set up the Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
@@ -267,6 +276,10 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         k_resolution = k_resolution or 0.1
 
     vasp_input_params["user_kpoints_settings"] = {"k_resolution": k_resolution}
+
+    # Override the INCAR settings with the user specifications
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
 
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(

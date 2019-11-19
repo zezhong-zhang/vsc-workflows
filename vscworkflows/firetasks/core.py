@@ -224,7 +224,7 @@ class VaspParallelizationTask(FiretaskBase):
     each electronic step. For NPAR, the algorithm tries to make sure NCORE as
     close to the square root of the number of cores in a node, and set NPAR
     accordingly, based on the number of cores/kpoint.
-
+    
     Optional params:
         directory (str): Directory of the VASP run. If not specified, the Task
             will run in the current directory.
