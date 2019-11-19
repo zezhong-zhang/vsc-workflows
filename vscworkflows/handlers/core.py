@@ -10,7 +10,6 @@ from collections import Counter
 from monty.re import regrep
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
-from pymatgen.io.vasp.outputs import Oszicar
 
 from custodian.vasp.interpreter import VaspModder, VaspInput
 from custodian.custodian import ErrorHandler
@@ -327,7 +326,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
 class ParallelizationTestMonitor(ErrorHandler):
     """
-    Monitor that should run during calculations for parallelization tests. Will
+    Monitor that is designed to run during calculations for scaling tests. Will
     shut down the calculation once a specified number of electronic steps have run,
     or in case the time for one electronic step is larger than some threshold.
 
@@ -339,7 +338,7 @@ class ParallelizationTestMonitor(ErrorHandler):
 
     def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
         """
-        Initializes the handler with the output file to check.
+        Initializes the ParallelizationTestMonitor.
 
         Args:
             max_elec_steps (int): Maximum number self-consistent steps (i.e.
@@ -358,6 +357,7 @@ class ParallelizationTestMonitor(ErrorHandler):
         loop_pattern = r"\s+LOOP:\s+cpu\stime\s+\S+:\sreal\stime\s+(\S+)"
         loop_timing = regrep(
             filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
+
         if len(loop_timing) > 0:
             max_loop = np.max([float(e[0][0]) for e in loop_timing])
             if max_loop > self.max_elec_step_time:
@@ -366,7 +366,7 @@ class ParallelizationTestMonitor(ErrorHandler):
         with open("temp.out", "w") as file:
             file.write("Number of steps: " + str(len(loop_timing)))
 
-        if len(loop_timing) > self.max_elec_steps + nelmdl:
+        if len(loop_timing) >= self.max_elec_steps + nelmdl - 1:
             return True
         else:
             return False
@@ -384,47 +384,25 @@ class JobTerminator(ErrorHandler):
     """
     Looks for Errors in stdout and terminates the job without any corrections.
 
+    Mainly designed to shut down calculations that have bad parallelization
+    settings during scaling tests, as here the input settings cannot be changed in
+    order to allow a fair comparison of the performance.
+
     """
     is_monitor = True
 
     error_msgs = {
-        "tet": ["Tetrahedron method fails for NKPT<4",
-                "Fatal error detecting k-mesh",
-                "Fatal error: unable to match k-point",
-                "Routine TETIRR needs special values",
-                "Tetrahedron method fails (number of k-points < 4)"],
-        "inv_rot_mat": ["inverse of rotation matrix was not found (increase "
-                        "SYMPREC)"],
         "brmix": ["BRMIX: very serious problems"],
         "subspacematrix": ["WARNING: Sub-Space-Matrix is not hermitian in "
                            "DAV"],
-        "tetirr": ["Routine TETIRR needs special values"],
-        "incorrect_shift": ["Could not get correct shifts"],
-        "real_optlay": ["REAL_OPTLAY: internal error",
-                        "REAL_OPT: internal ERROR"],
-        "rspher": ["ERROR RSPHER"],
-        "dentet": ["DENTET"],
         "too_few_bands": ["TOO FEW BANDS"],
-        "triple_product": ["ERROR: the triple product of the basis vectors"],
         "rot_matrix": ["Found some non-integer element in rotation matrix"],
-        "brions": ["BRIONS problems: POTIM should be increased"],
         "pricel": ["internal error in subroutine PRICEL"],
         "zpotrf": ["LAPACK: Routine ZPOTRF failed"],
-        "amin": ["One of the lattice vectors is very long (>50 A), but AMIN"],
-        "zbrent": ["ZBRENT: fatal internal in",
-                   "ZBRENT: fatal error in bracketing"],
         "pssyevx": ["ERROR in subspace rotation PSSYEVX"],
         "eddrmm": ["WARNING in EDDRMM: call to ZHEGV failed"],
         "edddav": ["Error EDDDAV: Call to ZHEGV failed"],
-        "grad_not_orth": [
-            "EDWAV: internal error, the gradient is not orthogonal"],
-        "nicht_konv": ["ERROR: SBESSELITER : nicht konvergent"],
         "zheev": ["ERROR EDDIAG: Call to routine ZHEEV failed!"],
-        "elf_kpar": ["ELF: KPAR>1 not implemented"],
-        "elf_ncl": ["WARNING: ELF not implemented for non collinear case"],
-        "rhosyg": ["RHOSYG internal error"],
-        "posmap": ["POSMAP internal error: symmetry equivalent atom not found"],
-        "point_group": ["Error: point group operation missing"],
         "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to DGEMV"]
     }
 
@@ -450,10 +428,10 @@ class JobTerminator(ErrorHandler):
                 lines:
 
                 ```
-                subset = list(VaspErrorHandler.error_msgs.keys())
+                subset = list(JobTerminator.error_msgs.keys())
                 subset.pop("eddrrm")
 
-                handler = VaspErrorHandler(errors_subset_to_catch=subset)
+                handler = JobTerminator(errors_subset_to_catch=subset)
                 ```
         """
         self.output_filename = output_filename
