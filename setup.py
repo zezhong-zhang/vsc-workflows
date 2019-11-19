@@ -14,7 +14,6 @@ setup(
         "dnspython",
         "click",
         "monty",
-        "icet",
         "tabulate"
     ],
     entry_points='''
