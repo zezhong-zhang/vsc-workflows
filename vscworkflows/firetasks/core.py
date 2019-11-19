@@ -213,36 +213,46 @@ class VaspCustodianTask(FiretaskBase):
 @explicit_serialize
 class VaspParallelizationTask(FiretaskBase):
     """
-    Set up the parallelization setting for a VASP calculation. As I do not seem
-    to be able to properly determine the number of irreducible kpoints that VASP
-    uses based on the input files, this Firetask runs the VASP calculation until
-    the IBZKPT file is created, and then reads the number of irreducible kpoints
-    from this file.
+    Set up the parallelization setting for a VASP calculation. As I do not seem to
+    be able to properly determine the number of irreducible kpoints that VASP uses
+    based on the input files, this Firetask runs the VASP calculation until the
+    IBZKPT file is created, and then reads the number of irreducible kpoints from
+    this file.
 
-    The current parallelization scheme tries to maximize KPAR, which seems to
-    consistently improve scaling. However, it does consider the number of kpoints
-    in the calculation in order to make sure not too many resources are inactive
-    each electronic step. For NPAR, the algorithm tries to make sure NCORE as
-    close to the square root of the number of cores in a node, and set NPAR
-    accordingly, based on the number of cores/kpoint.
+    The current parallelization scheme makes a list of KPAR values that:
+
+        1. Is a divisor of the total number of cores.
+        2. Do not waste too many resources over a single electronic step.
+
+    It then takes the value with index KPOINTS_LIST_CHOICE from this list. The
+    current default does not take the maximal KPAR, but one just below that. So
+    far that seems to result in reasonable KPAR picks.
+
+    For NCORE, the algorithm tries to make sure it is as close to a specified
+    number. The default, OPTIMAL_NCORE_DEFAULT = 2, was set based on a rough
+    analysis based on the get_wf_parallel() workflow. However, it is clear that
+    this value can be very system specific. We'll have to do more testing to come
+    up with a more sophisticated algorithm.
 
     Optional params:
         directory (str): Directory of the VASP run. If not specified, the Task
             will run in the current directory.
         KPAR (int): Override the KPAR value.
-        NPAR (int): Override the NPAR value.
-
+        NCORE (int): Override the NCORE value.
+        optimal_ncore (int): Optimal value for NCORE, which the algorithm will
+            attempt to get close to based on the number of cores per k-point.
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
 
-    optional_params = ["directory", "KPAR", "NPAR", "optimal_ncore"]
-    OPTIMAL_NCORE_DEFAULT = 8
+    optional_params = ["directory", "KPAR", "NCORE", "optimal_ncore"]
+    OPTIMAL_NCORE_DEFAULT = 2
+    KPAR_LIST_CHOICE = -2
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
         kpar = self.get("KPAR", None)
-        npar = self.get("NPAR", None)
+        ncore = self.get("NCORE", None)
         optimal_ncore = self.get("optimal_ncore",
                                  VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT)
 
@@ -296,32 +306,32 @@ class VaspParallelizationTask(FiretaskBase):
             with open(os.path.join("parallel.out"), "w") as file:
                 file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
 
-        if npar is None:
-            npar = self._find_npar(number_of_cores // kpar, optimal_ncore)
+        if ncore is None:
+            ncore = self._find_ncore(number_of_cores // kpar, optimal_ncore)
 
         with open(os.path.join("parallel.out"), "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("KPAR = " + str(kpar) + "\n")
-            file.write("NPAR = " + str(npar) + "\n")
+            file.write("NCORE = " + str(ncore) + "\n")
 
-        self._set_incar_parallelization(kpar, npar)
+        self._set_incar_parallelization(kpar, ncore)
 
-    def _set_incar_parallelization(self, kpar, npar=None):
+    def _set_incar_parallelization(self, kpar, ncore=None):
 
         directory = self.get("directory", os.getcwd())
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
         incar.update({"KPAR": kpar})
-        if npar is not None:
-            incar.update({"NPAR": npar})
+        if ncore is not None:
+            incar.update({"NCORE": ncore})
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
     def _find_kpar(n_kpoints, n_cores, cores_per_node):
 
         ncores_divisors = np.array(
-            [i for i in list(range(1, n_cores)) if n_cores % i == 0]
-        )  # Do not consider KPAR = n_cores ^
+            [i for i in list(range(1, n_cores + 1)) if n_cores % i == 0]
+        )
 
         kpar_list = []
 
@@ -331,17 +341,17 @@ class VaspParallelizationTask(FiretaskBase):
                     n_kpoints, kpar, n_cores) < cores_per_node / 2:
                 kpar_list.append(kpar)
 
-        return kpar_list[-1]  # Take the maximal KPAR
+        return kpar_list[VaspParallelizationTask.KPAR_LIST_CHOICE]
 
     @staticmethod
-    def _find_npar(cores_per_k, optimal_ncore):
+    def _find_ncore(cores_per_k, optimal_ncore):
 
         divisors = np.array(
             [i for i in list(range(1, cores_per_k + 1)) if cores_per_k % i == 0]
         )
         ncore = divisors[(np.abs(divisors - optimal_ncore)).argmin()]
 
-        return cores_per_k // ncore
+        return ncore
 
     @staticmethod
     def _find_core_waste(n_kpoints, kpar, n_cores):
@@ -449,10 +459,10 @@ class WriteVaspFromIOSet(FiretaskBase):
 
     Required params:
         vasp_input_set (VaspInputSet or str): Either a VaspInputSet instance
-            or a string name for the VASP input set. Best practise is to provide 
-            the full module path (e.g. pymatgen.io.vasp.sets.MPRelaxSet). It's 
-            also possible to only provide the class name (e.g. MPRelaxSet). In 
-            this case the Task will look for the set in our list of sets and then 
+            or a string name for the VASP input set. Best practise is to provide
+            the full module path (e.g. pymatgen.io.vasp.sets.MPRelaxSet). It's
+            also possible to only provide the class name (e.g. MPRelaxSet). In
+            this case the Task will look for the set in our list of sets and then
             the pymatgen sets.
 
     Optional params:
