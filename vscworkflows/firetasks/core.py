@@ -246,7 +246,7 @@ class VaspParallelizationTask(FiretaskBase):
     # TODO: Works, but the directory calling seems overkill; clean and test
     # TODO: The current code is not super readable or clean -> Zen it up
 
-    optional_params = ["directory",  "opt_band_parallel", "NBANDS", "KPAR", "NCORE"]
+    optional_params = ["directory", "opt_band_parallel", "NBANDS", "KPAR", "NCORE"]
     OPTIMAL_NCORE_DEFAULT_PBE = 7
     OPTIMAL_NPAR_DEFAULT_HSE = 8
 
@@ -261,11 +261,13 @@ class VaspParallelizationTask(FiretaskBase):
             os.path.join(directory, "INCAR")).get("AEXX", 0.0) != 0.0
 
         if is_hybrid:
-            opt_band_parallel = self.get("optimal_ncore",
-                                 VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_HSE)
+            opt_band_parallel = self.get(
+                "optimal_ncore", VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_HSE
+            )
         else:
-            opt_band_parallel = self.get("optimal_ncore",
-                                 VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_PBE)
+            opt_band_parallel = self.get(
+                "optimal_ncore", VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_PBE
+            )
 
         # Get the total number of nodes/cores
         try:
