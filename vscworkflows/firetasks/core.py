@@ -244,7 +244,7 @@ class VaspParallelizationTask(FiretaskBase):
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
 
-    optional_params = ["directory", "NBANDS", "KPAR", "NCORE", "optimal_ncore"]
+    optional_params = ["directory",  "optimal_ncore", "NBANDS", "KPAR", "NCORE"]
     OPTIMAL_NCORE_DEFAULT = 7
 
     def run_task(self, fw_spec):
