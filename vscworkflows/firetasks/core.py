@@ -253,17 +253,19 @@ class VaspParallelizationTask(FiretaskBase):
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
-        incar = Incar.from_file(os.path.join(directory, "INCAR"))
         nbands = self.get("NBANDS", None)
         kpar = self.get("KPAR", None)
         ncore = self.get("NCORE", None)
 
-        if incar.get("AEXX", 0.0) == 0.0:
+        is_hybrid = Incar.from_file(
+            os.path.join(directory, "INCAR")).get("AEXX", 0.0) != 0.0
+
+        if is_hybrid:
             opt_band_parallel = self.get("optimal_ncore",
-                                 VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_PBE)
+                                 VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_HSE)
         else:
             opt_band_parallel = self.get("optimal_ncore",
-                                 VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_HSE)
+                                 VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_PBE)
 
         # Get the total number of nodes/cores
         try:
@@ -323,31 +325,37 @@ class VaspParallelizationTask(FiretaskBase):
             choice = {"kpar": 0, "ncore": 0}
 
             for k in kpar_list:
+
+                optimal_ncore = opt_band_parallel if not is_hybrid else \
+                    number_of_cores // k // opt_band_parallel
+
                 nc = self._find_ncore(
                     cores_per_k=number_of_cores // k,
-                    optimal_ncore=opt_band_parallel,
+                    optimal_ncore=optimal_ncore,
                     nbands=nbands
                 )
 
-                if abs(nc - opt_band_parallel) <= abs(choice["ncore"]
-                                                      - opt_band_parallel):
+                if abs(nc - optimal_ncore) <= abs(choice["ncore"] - optimal_ncore):
                     if k > choice["kpar"]:
                         choice = {"kpar": k, "ncore": nc}
 
             kpar = choice["kpar"]
-            ncore = choice["ncore"] if incar.get("AEXX", 0.0) == 0.0 else \
-                number_of_cores // choice["kpar"] // choice["ncore"]
+            ncore = choice["ncore"]
 
         elif ncore is None:
+            optimal_ncore = opt_band_parallel if not is_hybrid else \
+                number_of_cores // kpar // opt_band_parallel
+
             ncore = self._find_ncore(
                 cores_per_k=number_of_cores // kpar,
-                optimal_ncore=opt_band_parallel,
+                optimal_ncore=optimal_ncore,
                 nbands=nbands
             )
 
         with open(os.path.join("parallel.out"), "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("KPAR = " + str(kpar) + "\n")
+            file.write("NPAR = " + str(kpar) + "\n")
             file.write("NCORE = " + str(ncore) + "\n")
 
         self._set_incar_parallelization(kpar, ncore)
