@@ -262,11 +262,13 @@ class VaspParallelizationTask(FiretaskBase):
 
         if is_hybrid:
             opt_band_parallel = self.get(
-                "optimal_ncore", VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_HSE
+                "opt_band_parallel",
+                VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_HSE
             )
         else:
             opt_band_parallel = self.get(
-                "optimal_ncore", VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_PBE
+                "opt_band_parallel",
+                VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_PBE
             )
 
         # Get the total number of nodes/cores
@@ -315,34 +317,15 @@ class VaspParallelizationTask(FiretaskBase):
             os.remove(os.path.join(directory, "temp.out"))
 
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
-                number_of_kpoints = int(file.read().split('\n')[1])
-
-            kpar_list = self._find_kpar_list(number_of_kpoints,
-                                             number_of_cores,
-                                             cores_per_node)
+                nkpts = int(file.read().split('\n')[1])
 
             with open(os.path.join("parallel.out"), "w") as file:
-                file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
+                file.write("Number_of kpoints = " + str(nkpts) + "\n")
 
-            choice = {"kpar": 0, "ncore": 0}
-
-            for k in kpar_list:
-
-                optimal_ncore = opt_band_parallel if not is_hybrid else \
-                    number_of_cores // k // opt_band_parallel
-
-                nc = self._find_ncore(
-                    cores_per_k=number_of_cores // k,
-                    optimal_ncore=optimal_ncore,
-                    nbands=nbands
-                )
-
-                if abs(nc - optimal_ncore) <= abs(choice["ncore"] - optimal_ncore):
-                    if k > choice["kpar"]:
-                        choice = {"kpar": k, "ncore": nc}
-
-            kpar = choice["kpar"]
-            ncore = choice["ncore"]
+            kpar, ncore = self._optimize_parallelization(
+                nkpts, nbands, number_of_cores, cores_per_node,
+                opt_band_parallel, is_hybrid
+            )
 
         elif ncore is None:
             optimal_ncore = opt_band_parallel if not is_hybrid else \
@@ -357,7 +340,7 @@ class VaspParallelizationTask(FiretaskBase):
         with open(os.path.join("parallel.out"), "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("KPAR = " + str(kpar) + "\n")
-            file.write("NPAR = " + str(kpar) + "\n")
+            file.write("NPAR = " + str(number_of_cores // kpar // ncore) + "\n")
             file.write("NCORE = " + str(ncore) + "\n")
 
         self._set_incar_parallelization(kpar, ncore)
@@ -371,6 +354,40 @@ class VaspParallelizationTask(FiretaskBase):
         if ncore is not None:
             incar.update({"NCORE": ncore})
         incar.write_file(os.path.join(directory, "INCAR"))
+
+    @staticmethod
+    def _optimize_parallelization(nkpts, nbands, number_of_cores, cores_per_node,
+                                  opt_band_parallel, is_hybrid):
+
+        kpar_list = VaspParallelizationTask._find_kpar_list(
+            nkpts, number_of_cores, cores_per_node
+        )
+
+        choice = {"kpar": 0, "band_parallel": 0}
+
+        for k in kpar_list:
+
+            band_parallel = VaspParallelizationTask._find_closest_divisor(
+                value=number_of_cores // k,
+                optimal_value=opt_band_parallel
+            )
+            accept = [k > choice["kpar"],
+                      abs(band_parallel - opt_band_parallel) <= abs(
+                          choice["band_parallel"] - opt_band_parallel)]
+
+            if nbands is not None:
+                accept.append(
+                    (nbands % band_parallel == 0) if is_hybrid else
+                    (nbands % (number_of_cores // k // band_parallel) == 0)
+                )
+            if all(accept):
+                choice = {"kpar": k, "band_parallel": band_parallel}
+
+        kpar = choice["kpar"]
+        ncore = (choice["band_parallel"] if not is_hybrid else
+                 number_of_cores // choice["kpar"] // choice["band_parallel"])
+
+        return kpar, ncore
 
     @staticmethod
     def _find_kpar_list(n_kpoints, n_cores, cores_per_node):
@@ -412,6 +429,14 @@ class VaspParallelizationTask(FiretaskBase):
         ncore = divisors[(np.abs(divisors - optimal_ncore)).argmin()]
 
         return ncore
+
+    @staticmethod
+    def _find_closest_divisor(value, optimal_value):
+
+        divisors = np.array(
+            [i for i in list(range(1, value + 1)) if value % i == 0]
+        )
+        return divisors[(np.abs(divisors - optimal_value)).argmin()]
 
     @staticmethod
     def _find_core_waste(n_kpoints, kpar, n_cores):
