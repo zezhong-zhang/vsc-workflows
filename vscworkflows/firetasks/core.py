@@ -362,25 +362,16 @@ class VaspParallelizationTask(FiretaskBase):
         # Only consider kpars for which not too much core run time is wasted
         for kpar in ncores_divisors:
 
-            # print("kpar " + str(kpar))
-
             core_waste = VaspParallelizationTask._find_core_waste(
                 n_kpoints, kpar, n_cores)
-
-            # print("core_waste " + str(core_waste))
 
             too_much_waste = core_waste > cores_per_node
             waste_fraction = core_waste / n_cores
 
-            # print("waste_fraction " + str(waste_fraction))
             too_much_waste = too_much_waste or waste_fraction >= 1 / 3
 
             if not too_much_waste:
                 kpar_list.append(kpar)
-
-        print(kpar_list)
-
-        # kpar_list_choice = -int((np.log10(n_kpoints) // 1) + 1)
 
         return kpar_list
 
