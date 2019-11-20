@@ -256,6 +256,8 @@ class VaspParallelizationTask(FiretaskBase):
         opt_ncore = self.get("optimal_ncore",
                                  VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT)
 
+        incar = Incar.from_file(os.path.join(directory, "INCAR"))
+
         # Get the total number of nodes/cores
         try:
             number_of_nodes = int(os.environ["PBS_NUM_NODES"])
@@ -319,12 +321,14 @@ class VaspParallelizationTask(FiretaskBase):
                     optimal_ncore=opt_ncore,
                     nbands=nbands
                 )
+
                 if abs(nc - opt_ncore) <= abs(choice["ncore"] - opt_ncore):
                     if k > choice["kpar"]:
                         choice = {"kpar": k, "ncore": nc}
 
             kpar = choice["kpar"]
-            ncore = choice["ncore"]
+            ncore = choice["ncore"] if incar.get("AEXX", 0.0) == 0.0 else \
+                number_of_cores // choice["kpar"] // choice["ncore"]
 
         elif ncore is None:
             ncore = self._find_ncore(
