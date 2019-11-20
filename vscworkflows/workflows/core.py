@@ -631,7 +631,7 @@ def get_wf_parallel(structure, directory, nodes, nbands=None,
             # Set up the static calculation
             spec.update({"_launch_dir": os.path.join(
                 directory, str(nodes) + "nodes", str(kpar) + "kpar",
-                           str(npar) + "npar"
+                (str(npar) + "npar")
             )})
             spec.update({"_fworker": str(nodes) + "nodes"})
 
@@ -650,7 +650,8 @@ def get_wf_parallel(structure, directory, nodes, nbands=None,
                          custodian=handlers)
             )
 
-    workflow_name = "Parallel-Test: " + str(nodes) + "nodes."
+    workflow_name = ("Parallel-Test: " + structure.composition.reduced_formula
+                     + str(nodes) + "nodes.")
 
     # Create the workflow
     return Workflow(fireworks=fw_list, name=workflow_name)
