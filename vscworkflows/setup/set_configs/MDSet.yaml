@@ -3,16 +3,15 @@ INCAR:
   ALGO: Fast
   ADDGRID: true
   EDIFF: 1.0e-05
-  EDIFFG: -0.01
   EDIFF_PER_ATOM: 1.0e-05
   ENCUT: 500
   IBRION: 0
   ISIF: 0
   ISMEAR: 0
   ISPIN: 1
-  LASPH: true
+  LASPH: false
   LCHARG: false
-  LWAVE: true
+  LWAVE: false
   LPLANE: false
   LSCALU: false
   LDAU: false
