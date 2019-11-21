@@ -37,9 +37,7 @@ __date__ = "Jun 2019"
 
 
 def _find_irr_k_points(directory):
-    # TODO Fails for magnetic structures.
-    # It seems that the algorithm is not taking the magnetic moments into account
-    # properly. Fix this.
+    # TODO Still fails for many calculations...
 
     directory = os.path.abspath(directory)
 
@@ -48,6 +46,9 @@ def _find_irr_k_points(directory):
     incar = Incar.from_file(os.path.join(directory, "INCAR"))
     if incar.get("MAGMOM", None) is not None:
         structure.add_site_property(("magmom"), incar.get("MAGMOM", None))
+        structure.add_oxidation_state_by_site(
+            [round(magmom, 3) for magmom in structure.site_properties["magmom"]]
+        )
 
     kpoints = Kpoints.from_file(os.path.join(directory, "KPOINTS"))
 
