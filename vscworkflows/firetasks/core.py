@@ -351,6 +351,10 @@ class VaspParallelizationTask(FiretaskBase):
         directory = self.get("directory", os.getcwd())
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
+        if incar.get("ALGO", "Normal") == "Fast":
+            warnings.warn("Based on our current tests, the VaspParallelizationTask "
+                          "does not do a good job of optimizing the "
+                          "parallelization settings for the RMM-DIIS algorithm.")
         incar.update({"KPAR": kpar})
         if ncore is not None:
             incar.update({"NCORE": ncore})
