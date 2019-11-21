@@ -651,7 +651,7 @@ def get_wf_parallel(structure, directory, nodes, nbands=None,
             )
 
     workflow_name = ("Parallel-Test: " + structure.composition.reduced_formula
-                     + str(nodes) + "nodes.")
+                     + " " + str(nodes) + "nodes.")
 
     # Create the workflow
     return Workflow(fireworks=fw_list, name=workflow_name)
