@@ -85,10 +85,15 @@ class BulkStaticSet(DictSet):
         if "k_resolution" in settings:
             # Use k_resolution to calculate kpoints
             k_kpoint_resolution = settings["k_resolution"]
-            kpt_divisions = [int(np.floor(1 / l / k_kpoint_resolution)) for l in
-                             self.structure.lattice.lengths]
+            kpt_divisions = [int(np.ceil(l / k_kpoint_resolution)) for l in
+                             self.structure.lattice.reciprocal_lattice.lengths]
 
             return Kpoints.gamma_automatic(kpts=kpt_divisions)
+
+        elif "gamma_density" in settings:
+            return Kpoints.automatic_density_by_vol(
+                self.structure, int(settings['gamma_density']),
+                force_gamma=True)
         else:
             return super().kpoints
 
