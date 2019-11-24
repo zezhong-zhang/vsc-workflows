@@ -330,7 +330,7 @@ class MDSet(DictSet):
         # update according to ensemble and thermostat
         ensemble_thermostat_combo = dict()
         if ensemble == "NVE":
-            ensemble_thermostat_combo = {'MDALGO':0, 'SMASS':-3}
+            ensemble_thermostat_combo = {'MDALGO':0, 'SMASS':-3, 'ANDERSEN_PROB': 0}
         elif ensemble == "NVT":
             if thermostat == "Andersen":
                 ensemble_thermostat_combo = {'MDALGO':1, 'ISIF':2}
