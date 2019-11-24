@@ -323,7 +323,7 @@ class MDSet(DictSet):
                              '["NVE", "NVT", "NPT", "NPH"]')
         if thermostat is None:
             thermostat = "Nose-Hoover"
-        if thermostat in thermostat_option:
+        if thermostat not in thermostat_option:
             raise ValueError('thermostat not in the list of '
                              '["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]')
 
