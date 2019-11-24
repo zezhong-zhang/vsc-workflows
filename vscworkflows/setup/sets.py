@@ -315,14 +315,15 @@ class MDSet(DictSet):
         # choose ensemble and thermostat
         ensemble_option = ["NVE", "NVT", "NPT", "NPH"]
         thermostat_option = ["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]
-        if ensemble in ensemble_option or ensemble is None:
-            ensemble = self.get("ensemble", "NVT") or "NVT"
-        else:
+
+        if ensemble is None:
+            ensemble = "NVT"
+        if ensemble not in ensemble_option:
             raise ValueError('ensemble not in the list of '
                              '["NVE", "NVT", "NPT", "NPH"]')
-        if thermostat in thermostat_option or thermostat is None:
-            thermostat = self.get("thermostat", "Nose-Hoover") or "Nose-Hoover"
-        else:
+        if thermostat is None:
+            thermostat = "Nose-Hoover"
+        if thermostat in thermostat_option:
             raise ValueError('thermostat not in the list of '
                              '["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]')
 
