@@ -29,7 +29,7 @@ INCAR:
   NSIM: 4
   NBLOCK: 1
   KBLOCK: 100
-  SMASS: -3
+  SMASS: 0
   POTIM: 2
 KPOINTS:
   reciprocal_density: 100
