@@ -508,8 +508,8 @@ class MDFW(Firework):
             start_temp (float): Start temperature of MD run.
             end_temp (float): End temperature of MD run.
             nsteps (int): Number of MD steps
-            ensemble (str): ensemble_option = ["NVE", "NVT", "NPT", "NPH"]
-            thermostat (str): thermostat_option = ["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]
+            ensemble (str): ensemble_option = ["NVE", "NVT", "NPT", "NPH"]; default is "NVT".
+            thermostat (str): thermostat_option = ["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]; default is "Nose-Hoover".
             name (string): Name for the Firework.
             vasp_input_params (dict): If this is not None,
                 these params are passed to the default vasp_input_set, i.e.,
