@@ -272,12 +272,16 @@ class MDSet(DictSet):
      runs.
      """
 
-    def __init__(self, structure, start_temp, end_temp, nsteps, time_step=2,
+    def __init__(self, structure, ensemble, thermostat,
+                 start_temp, end_temp, nsteps, time_step=2,
                  spin_polarized=False, **kwargs):
-        r"""
-
+        """
         Args:
             structure (Structure): Input structure.
+            ensemble: ensemble (string) default here choose is 'NVT'
+            see https://www.vasp.at/wiki/index.php/Category:Ensembles
+            thermostat: thermostat (string) default here choose is 'Nose-Hoover'
+            see # see https://www.vasp.at/wiki/index.php/Category:Thermostats
             start_temp (int): Starting temperature.
             end_temp (int): Final temperature.
             nsteps (int): Number of time steps for simulations. NSW parameter.
@@ -287,11 +291,7 @@ class MDSet(DictSet):
                 The ISPIN parameter. Defaults to False.
             **kwargs: Other kwargs supported by :class:`DictSet`.
         """
-        # MD default settings
-        defaults = {'TEBEG': start_temp, 'TEEND': end_temp, 'NSW': nsteps,
-                    'POTIM': time_step,
-                    'ISPIN': 2 if spin_polarized else 1}
-
+        # load MDSet
         config_dict = _set_structure_incar_settings(
             structure=structure, config_dict=_load_yaml_config("MDSet")
         )
@@ -304,10 +304,52 @@ class MDSet(DictSet):
         self.time_step = time_step
         self.spin_polarized = spin_polarized
         self.kwargs = kwargs
+        self.ensemble = ensemble
+        self.thermostat = thermostat
 
-        # use VASP default ENCUT
-        self._config_dict["INCAR"].pop('ENCUT', None)
+        # MD default settings
+        defaults = {'TEBEG': start_temp, 'TEEND': end_temp, 'NSW': nsteps,
+                    'POTIM': time_step,
+                    'ISPIN': 2 if spin_polarized else 1}
 
+        # choose ensemble and thermostat
+        ensemble_option = ["NVE", "NVT", "NPT", "NPH"]
+        thermostat_option = ["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]
+        if ensemble in ensemble_option or ensemble is None:
+            ensemble = self.get("ensemble", "NVT") or "NVT"
+        else:
+            raise ValueError('ensemble not in the list of '
+                             '["NVE", "NVT", "NPT", "NPH"]')
+        if thermostat in thermostat_option or thermostat is None:
+            thermostat = self.get("thermostat", "Nose-Hoover") or "Nose-Hoover"
+        else:
+            raise ValueError('thermostat not in the list of '
+                             '["Andersen", "Nose-Hoover", "Langevin", "Multiple Andersen"]')
+
+        # update according to ensemble and thermostat
+        ensemble_thermostat_combo = dict()
+        if ensemble == "NVE":
+            ensemble_thermostat_combo = {'MDALGO':0, 'SMASS':-3}
+        elif ensemble == "NVT":
+            if thermostat == "Andersen":
+                ensemble_thermostat_combo = {'MDALGO':1, 'ISIF':2}
+            if thermostat == "Nose-Hoover":
+                ensemble_thermostat_combo = {'MDALGO':2, 'ISIF':2}
+            if thermostat == "Langevin":
+                ensemble_thermostat_combo = {'MDALGO':3, 'ISIF':2}
+            if thermostat == "Multiple Andersen":
+                ensemble_thermostat_combo = {'MDALGO':13, 'ISIF':2}
+        elif ensemble == "NPT":
+            if thermostat == "Langevin":
+                ensemble_thermostat_combo ={'MDALGO':13, 'ISIF':3}
+            else:
+                raise ValueError('NPT is only availiable for Langevin thermostat'
+                                 'see https://www.vasp.at/wiki/index.php/Category:Thermostats')
+        elif ensemble == "NPH":
+            ensemble_thermostat_combo = {'MDALGO':13, 'ISIF':3, 'LANGEVIN_GAMMA_L': 0.0}
+        defaults.update(ensemble_thermostat_combo)
+
+        # finally update the INCAR with defaults, remove spin and magnetic moment if not spin_polarized
         if defaults['ISPIN'] == 1:
             self._config_dict["INCAR"].pop('MAGMOM', None)
         self._config_dict["INCAR"].update(defaults)

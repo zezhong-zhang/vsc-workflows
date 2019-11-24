@@ -9,13 +9,13 @@ INCAR:
   ISIF: 0
   ISMEAR: 0
   ISPIN: 1
-  LASPH: false
   LCHARG: false
   LWAVE: false
   LPLANE: false
   LSCALU: false
   LDAU: false
   LREAL: Auto
+  LASPH: true
   NELM: 500
   NELMIN: 4
   NSW: 300
@@ -29,7 +29,7 @@ INCAR:
   NSIM: 4
   NBLOCK: 1
   KBLOCK: 100
-  SMASS: 0
+  SMASS: -3
   POTIM: 2
 KPOINTS:
   reciprocal_density: 100

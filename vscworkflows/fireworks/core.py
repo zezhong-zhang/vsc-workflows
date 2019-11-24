@@ -496,6 +496,7 @@ class SlabDosFW(Firework):
 class MDFW(Firework):
 
     def __init__(self, structure, start_temp, end_temp, nsteps,
+                 ensemble=None, thermostat=None,
                  name="molecular dynamics",
                  vasp_input_params=None, parents=None, spec=None,
                  custodian=False, auto_parallelization=False):
@@ -527,6 +528,8 @@ class MDFW(Firework):
                                  start_temp=start_temp,
                                  end_temp=end_temp,
                                  nsteps=nsteps,
+                                 ensemble=ensemble,
+                                 thermostat=thermostat,
                                  **vasp_input_params)
         ))
 
@@ -547,3 +550,44 @@ class MDFW(Firework):
 
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
 
+# class ExpandPertubeFW(Firework):
+#
+#     def __init__(self, structure,
+#                  target_atom=none, target_lattice_params=none, min_distance=none,
+#                  name="preprocessing - expand and pertube",
+#                  parents=None, spec=None):
+#         """
+#         Expand a unitcell to a supercell with
+#         1) number of atoms closest to the target_atom or/and
+#         2) minimum lattice parameter is at least target_lattice_params; and
+#         3) try it best to obtain equal lattice parameters in each axis.
+#         Then it will perturb the atoms from their equilibrium position with min_distance.
+#         The outcome supercell is supposed to be supplied to MDFW.
+#
+#         Args:
+#
+#         """
+#
+#         tasks = list()
+#D
+#         if structure is not None:
+#             pass
+#         elif parents is not None:  # TODO What if multiple parents?
+#             parent_dir = fw_spec["parents"]["spec"]["_launch_dir"]
+#             structure = _load_structure_from_dir(parent_dir)
+#         else:
+#             raise ValueError("You must provide either an input structure or "
+#                              "parent firework to ExpandPertubeFW!")
+#
+#         # Run the calculation
+#         if custodian is True:
+#             tasks.append(VaspCustodianTask())
+#         elif isinstance(custodian, list):
+#             assert all([isinstance(h, ErrorHandler) for h in custodian]), \
+#                 "Not all elements in 'custodian' list are instances of " \
+#                 "the ErrorHandler class!"
+#             tasks.append(VaspCustodianTask(handlers=custodian))
+#         else:
+#             tasks.append(VaspTask())
+#
+#         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
