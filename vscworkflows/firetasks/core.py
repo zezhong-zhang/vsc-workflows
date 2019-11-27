@@ -37,9 +37,7 @@ __date__ = "Jun 2019"
 
 
 def _find_irr_k_points(directory):
-    # TODO Fails for magnetic structures.
-    # It seems that the algorithm is not taking the magnetic moments into account
-    # properly. Fix this.
+    # TODO Still fails for many calculations...
 
     directory = os.path.abspath(directory)
 
@@ -48,6 +46,9 @@ def _find_irr_k_points(directory):
     incar = Incar.from_file(os.path.join(directory, "INCAR"))
     if incar.get("MAGMOM", None) is not None:
         structure.add_site_property(("magmom"), incar.get("MAGMOM", None))
+        structure.add_oxidation_state_by_site(
+            [round(magmom, 3) for magmom in structure.site_properties["magmom"]]
+        )
 
     kpoints = Kpoints.from_file(os.path.join(directory, "KPOINTS"))
 
@@ -212,33 +213,85 @@ class VaspCustodianTask(FiretaskBase):
 @explicit_serialize
 class VaspParallelizationTask(FiretaskBase):
     """
-    Set up the parallelization setting for a VASP calculation. As I do not seem
-    to be able to properly determine the number of irreducible kpoints that VASP
-    uses based on the input files, this Firetask runs the VASP calculation until
-    the IBZKPT file is created, and then reads the number of irreducible kpoints
-    from this file.
+    Set up the parallelization setting for a VASP calculation. As I do not seem to
+    be able to properly determine the number of irreducible kpoints that VASP uses
+    based on the input files, this Firetask runs the VASP calculation until the
+    IBZKPT file is created, and then reads the number of irreducible kpoints from
+    this file.
 
-    The current parallelization scheme simply finds the integer closest to the
-    square root of the number of cores that is lower than the number of kpoints.
-    NPAR is not even used!
-    # TODO: Do proper tests for an optimal parallelization scheme
+    The current parallelization scheme first makes a list of KPAR values that:
+
+        1. Is a divisor of the total number of cores.
+        2. Do not waste too many resources over a single electronic step.
+
+    Then, it looks for the largest KPAR value in this list for NCORE as close as
+    possible to an optimal NCORE value. Based on tests on our machine, 7 is a good
+    value to aim for, but this is most likely machine-dependent.
+
+    If the calculation includes some Hartree-Fock mixing (AEXX != 0), NPAR is set
+    as close as possible to an optimal value, once again maximizing KPAR without
+    introducing too much waste of resources due to inactive cores. Based on our
+    tests, 8 is a good NPAR value to aim for using when hybrid functionals.
 
     Optional params:
         directory (str): Directory of the VASP run. If not specified, the Task
-        will run in the current directory.
+            will run in the current directory.
+        opt_band_parallel (int): Optimal value for NCORE (PBE) or NPAR (HSE),
+            overriding the defaults.
+        NBANDS (int): Set a restriction on the number of bands, i.e. NPAR must be
+            a divisor of this number if it is set.
         KPAR (int): Override the KPAR value.
+        NCORE (int): Override the NCORE value.
 
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
+    # TODO: The current code is not super readable or clean -> Zen it up
 
-    optional_params = ["directory", "KPAR"]
+    optional_params = ["directory", "opt_band_parallel", "NBANDS", "KPAR", "NCORE"]
+    OPTIMAL_NCORE_DEFAULT_PBE = 7
+    OPTIMAL_NPAR_DEFAULT_HSE = 8
 
     def run_task(self, fw_spec):
 
         directory = self.get("directory", os.getcwd())
+        nbands = self.get("NBANDS", None)
         kpar = self.get("KPAR", None)
+        ncore = self.get("NCORE", None)
+
+        is_hybrid = Incar.from_file(
+            os.path.join(directory, "INCAR")).get("AEXX", 0.0) != 0.0
+
+        if is_hybrid:
+            opt_band_parallel = self.get(
+                "opt_band_parallel",
+                VaspParallelizationTask.OPTIMAL_NPAR_DEFAULT_HSE
+            )
+        else:
+            opt_band_parallel = self.get(
+                "opt_band_parallel",
+                VaspParallelizationTask.OPTIMAL_NCORE_DEFAULT_PBE
+            )
+
+        # Get the total number of nodes/cores
+        try:
+            number_of_nodes = int(os.environ["PBS_NUM_NODES"])
+            number_of_cores = int(os.environ["PBS_NP"])
+            cores_per_node = number_of_cores / number_of_nodes
+        except KeyError:
+            try:
+                number_of_nodes = int(os.environ["SLURM_NNODES"])
+                cores_per_node = int(os.environ["SLURM_CPUS_ON_NODE"])
+                number_of_cores = number_of_nodes * cores_per_node
+            except KeyError:
+                raise NotImplementedError(
+                    "The VaspParallelizationTask currently only supports "
+                    "PBS and SLURM schedulers.")
 
         if kpar is None:
+
+            if ncore is not None:
+                raise NotImplementedError("Specifying NCORE but not KPAR is "
+                                          "currently not possible.")
 
             os.chdir(directory)
             stdout_file = os.path.join(directory, "temp.out")
@@ -265,50 +318,149 @@ class VaspParallelizationTask(FiretaskBase):
             os.remove(os.path.join(directory, "temp.out"))
 
             with open(os.path.join(directory, "IBZKPT"), "r") as file:
-                number_of_kpoints = int(file.read().split('\n')[1])
-
-            # Get the total number of cores
-            try:
-                number_of_cores = int(os.environ["PBS_NP"])
-            except KeyError:
-                try:
-                    number_of_nodes = int(os.environ["SLURM_NNODES"])
-                    cores_per_node = int(os.environ["SLURM_CPUS_ON_NODE"])
-                    number_of_cores = number_of_nodes * cores_per_node
-                except KeyError:
-                    raise NotImplementedError(
-                        "The VaspParallelizationTask currently only supports "
-                        "PBS and SLURM schedulers.")
-
-            kpar = self._find_kpar(number_of_kpoints, number_of_cores)
+                nkpts = int(file.read().split('\n')[1])
 
             with open(os.path.join("parallel.out"), "w") as file:
-                file.write("Number_of kpoints = " + str(number_of_kpoints) + "\n")
-                file.write("Number of cores = " + str(number_of_cores) + "\n")
-                file.write("Kpar = " + str(kpar) + "\n")
+                file.write("Number_of kpoints = " + str(nkpts) + "\n")
 
-        self._set_incar_parallelization(kpar)
+            kpar, ncore = self._optimize_parallelization(
+                nkpts, nbands, number_of_cores, cores_per_node,
+                opt_band_parallel, is_hybrid
+            )
 
-    def _set_incar_parallelization(self, kpar):
+        elif ncore is None:
+            optimal_ncore = opt_band_parallel if not is_hybrid else \
+                number_of_cores // kpar // opt_band_parallel
+
+            ncore = self._find_ncore(
+                cores_per_k=number_of_cores // kpar,
+                optimal_ncore=optimal_ncore,
+                nbands=nbands
+            )
+
+        with open(os.path.join("parallel.out"), "a+") as file:
+            file.write("Number of cores = " + str(number_of_cores) + "\n")
+            file.write("KPAR = " + str(kpar) + "\n")
+            file.write("NPAR = " + str(number_of_cores // kpar // ncore) + "\n")
+            file.write("NCORE = " + str(ncore) + "\n")
+
+        self._set_incar_parallelization(kpar, ncore)
+
+    def _set_incar_parallelization(self, kpar, ncore=None):
 
         directory = self.get("directory", os.getcwd())
 
         incar = Incar.from_file(os.path.join(directory, "INCAR"))
+        if incar.get("ALGO", "Normal") == "Fast":
+            warnings.warn("Based on our current tests, the VaspParallelizationTask "
+                          "does not do a good job of optimizing the "
+                          "parallelization settings for the RMM-DIIS algorithm.")
         incar.update({"KPAR": kpar})
+        if ncore is not None:
+            incar.update({"NCORE": ncore})
         incar.write_file(os.path.join(directory, "INCAR"))
 
     @staticmethod
-    def _find_kpar(n_kpoints, n_cores):
+    def _optimize_parallelization(nkpts, nbands, number_of_cores, cores_per_node,
+                                  opt_band_parallel, is_hybrid):
 
-        suitable_divisors = np.array(
-            [i for i in list(range(n_cores, 0, -1))
-             if n_cores % i == 0 and i < n_kpoints]
+        kpar_list = VaspParallelizationTask._find_kpar_list(
+            nkpts, number_of_cores, cores_per_node
         )
 
-        good_kpar_guess = np.sqrt(n_cores)
+        choice = {"kpar": 0, "band_parallel": 0}
 
-        return suitable_divisors[
-            (np.abs(suitable_divisors - good_kpar_guess)).argmin()]
+        for k in kpar_list:
+
+            band_parallel = VaspParallelizationTask._find_closest_divisor(
+                value=number_of_cores // k,
+                optimal_value=opt_band_parallel
+            )
+            accept = [k > choice["kpar"],
+                      abs(band_parallel - opt_band_parallel) <= abs(
+                          choice["band_parallel"] - opt_band_parallel)]
+
+            if nbands is not None:
+                accept.append(
+                    (nbands % band_parallel == 0) if is_hybrid else
+                    (nbands % (number_of_cores // k // band_parallel) == 0)
+                )
+            if all(accept):
+                choice = {"kpar": k, "band_parallel": band_parallel}
+
+        kpar = choice["kpar"]
+        ncore = (choice["band_parallel"] if not is_hybrid else
+                 number_of_cores // choice["kpar"] // choice["band_parallel"])
+
+        return kpar, ncore
+
+    @staticmethod
+    def _find_kpar_list(n_kpoints, n_cores, cores_per_node):
+
+        ncores_divisors = np.array(
+            [i for i in list(range(1, n_cores + 1)) if n_cores % i == 0]
+        )
+
+        kpar_list = []
+
+        # Only consider kpars for which not too much core run time is wasted
+        for kpar in ncores_divisors:
+
+            core_waste = VaspParallelizationTask._find_core_waste(
+                n_kpoints, kpar, n_cores)
+
+            too_much_waste = core_waste > cores_per_node
+            waste_fraction = core_waste / n_cores
+
+            too_much_waste = too_much_waste or waste_fraction >= 1 / 3
+
+            if not too_much_waste:
+                kpar_list.append(kpar)
+
+        return kpar_list
+
+    @staticmethod
+    def _find_ncore(cores_per_k, optimal_ncore, nbands=None):
+
+        divisors = np.array(
+            [i for i in list(range(1, cores_per_k + 1)) if cores_per_k % i == 0]
+        )
+
+        if nbands:
+            divisors = np.array(
+                [i for i in divisors if nbands % (cores_per_k // i) == 0]
+            )
+
+        ncore = divisors[(np.abs(divisors - optimal_ncore)).argmin()]
+
+        return ncore
+
+    @staticmethod
+    def _find_closest_divisor(value, optimal_value):
+
+        divisors = np.array(
+            [i for i in list(range(1, value + 1)) if value % i == 0]
+        )
+        return divisors[(np.abs(divisors - optimal_value)).argmin()]
+
+    @staticmethod
+    def _find_core_waste(n_kpoints, kpar, n_cores):
+
+        if n_cores % kpar != 0:
+            raise ValueError("KPAR is not a divisor of the number of available "
+                             "cores!")
+
+        kpar_groups = n_kpoints // kpar
+
+        if n_kpoints % kpar != 0.0:
+            kpar_groups += 1
+
+        if n_kpoints % kpar == 0:
+            lost_cores = 0
+        else:
+            lost_cores = (kpar - n_kpoints % kpar) * n_cores / kpar
+
+        return lost_cores / kpar_groups
 
 
 @explicit_serialize
@@ -398,10 +550,10 @@ class WriteVaspFromIOSet(FiretaskBase):
 
     Required params:
         vasp_input_set (VaspInputSet or str): Either a VaspInputSet instance
-            or a string name for the VASP input set. Best practise is to provide 
-            the full module path (e.g. pymatgen.io.vasp.sets.MPRelaxSet). It's 
-            also possible to only provide the class name (e.g. MPRelaxSet). In 
-            this case the Task will look for the set in our list of sets and then 
+            or a string name for the VASP input set. Best practise is to provide
+            the full module path (e.g. pymatgen.io.vasp.sets.MPRelaxSet). It's
+            also possible to only provide the class name (e.g. MPRelaxSet). In
+            this case the Task will look for the set in our list of sets and then
             the pymatgen sets.
 
     Optional params:

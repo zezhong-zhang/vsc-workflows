@@ -4,6 +4,7 @@
 
 import os
 import warnings
+import numpy as np
 
 from monty.serialization import loadfn
 from pymatgen.io.vasp.inputs import Poscar, Kpoints
@@ -84,10 +85,15 @@ class BulkStaticSet(DictSet):
         if "k_resolution" in settings:
             # Use k_resolution to calculate kpoints
             k_kpoint_resolution = settings["k_resolution"]
-            kpt_divisions = [round(l / k_kpoint_resolution + 0.5) for l in
+            kpt_divisions = [int(np.ceil(l / k_kpoint_resolution)) for l in
                              self.structure.lattice.reciprocal_lattice.lengths]
 
             return Kpoints.gamma_automatic(kpts=kpt_divisions)
+
+        elif "gamma_density" in settings:
+            return Kpoints.automatic_density_by_vol(
+                self.structure, int(settings['gamma_density']),
+                force_gamma=True)
         else:
             return super().kpoints
 
