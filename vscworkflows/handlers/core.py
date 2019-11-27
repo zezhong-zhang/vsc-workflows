@@ -2,21 +2,21 @@
 # Copyright (c) Marnik Bercx, University of Antwerp
 # Distributed under the terms of the MIT License
 
-import subprocess
+import subprocess, os, time
 import numpy as np
 import matplotlib.pyplot as plt
 
 from collections import Counter
+from monty.re import regrep
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
-from pymatgen.io.vasp.outputs import Oszicar
 
 from custodian.vasp.interpreter import VaspModder, VaspInput
 from custodian.custodian import ErrorHandler
 from custodian.utils import backup
 
 """
-Package that contains all the fireworks to construct Workflows.
+Module that contains all the Custodian ErrorHandlers.
 
 """
 
@@ -205,7 +205,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
     is_monitor = True
 
     def __init__(self, min_electronic_steps=30, max_allowed_incline=-0.005,
-                 max_interp_range=40, output_data=False):
+                 max_fit_range=40, output_data=False):
         """
         Initializes the handler with the output file to check.
 
@@ -216,11 +216,15 @@ class ElectronicConvergenceMonitor(ErrorHandler):
                 logarithm of the residual charge. If this value is exceeded,
                 the check method returns positive and the monitor kills the job
                 and corrects.
+            max_fit_range (int): Maximum number of steps to consider for the
+                linear fit.
+            output_data (bool): Output the results of the checks, as well as a
+                .png file of the incline per electronic step.
 
         """
         self.min_electronic_steps = min_electronic_steps
         self.max_allowed_incline = max_allowed_incline
-        self.max_interp_range = max_interp_range
+        self.max_interp_range = max_fit_range
         self.output_data = output_data
 
     def check(self):
@@ -318,3 +322,151 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         # Unfixable error. Just return None for actions.
         else:
             return {"errors": ["Non-converging job"], "actions": None}
+
+
+class ParallelizationTestMonitor(ErrorHandler):
+    """
+    Monitor that is designed to run during calculations for scaling tests. Will
+    shut down the calculation once a specified number of electronic steps have run,
+    or in case the time for one electronic step is larger than some threshold.
+
+    """
+    is_monitor = True
+    is_terminating = False
+    raises_runtime_error = False
+    max_num_corrections = 1
+
+    def __init__(self, max_elec_steps=10, max_elec_step_time=3600):
+        """
+        Initializes the ParallelizationTestMonitor.
+
+        Args:
+            max_elec_steps (int): Maximum number self-consistent steps (i.e.
+                excluding the first NELMDL steps).
+            max_elec_step_time (float): Maximum allowed time per electronic step.
+
+        """
+        self.max_elec_steps = max_elec_steps
+        self.max_elec_step_time = max_elec_step_time
+
+    def check(self):
+
+        vi = VaspInput.from_directory(".")
+        nelmdl = abs(vi["INCAR"].get("NELMDL", -5))
+
+        loop_pattern = r"\s+LOOP:\s+cpu\stime\s+\S+:\sreal\stime\s+(\S+)"
+        loop_timing = regrep(
+            filename="OUTCAR", patterns={"loop": loop_pattern})["loop"]
+
+        if len(loop_timing) > 0:
+            max_loop = np.max([float(e[0][0]) for e in loop_timing])
+            if max_loop > self.max_elec_step_time:
+                return True
+
+        with open("temp.out", "w") as file:
+            file.write("Number of steps: " + str(len(loop_timing)))
+
+        if len(loop_timing) >= self.max_elec_steps + nelmdl - 1:
+            return True
+        else:
+            return False
+
+    def correct(self):
+
+        with open("STOPCAR", "w") as file:
+            file.write("LABORT = True")
+
+        return {"errors": ["Parallelization Monitor"],
+                "actions": None}
+
+
+class JobTerminator(ErrorHandler):
+    """
+    Looks for Errors in stdout and terminates the job without any corrections.
+
+    Mainly designed to shut down calculations that have bad parallelization
+    settings during scaling tests, as here the input settings cannot be changed in
+    order to allow a fair comparison of the performance.
+
+    """
+    is_monitor = True
+
+    error_msgs = {
+        "brmix": ["BRMIX: very serious problems"],
+        "subspacematrix": ["WARNING: Sub-Space-Matrix is not hermitian in "
+                           "DAV"],
+        "too_few_bands": ["TOO FEW BANDS"],
+        "rot_matrix": ["Found some non-integer element in rotation matrix"],
+        "pricel": ["internal error in subroutine PRICEL"],
+        "zpotrf": ["LAPACK: Routine ZPOTRF failed"],
+        "pssyevx": ["ERROR in subspace rotation PSSYEVX"],
+        "eddrmm": ["WARNING in EDDRMM: call to ZHEGV failed"],
+        "edddav": ["Error EDDDAV: Call to ZHEGV failed"],
+        "zheev": ["ERROR EDDIAG: Call to routine ZHEEV failed!"],
+        "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to DGEMV"]
+    }
+
+    def __init__(self, output_filename="vasp.out", natoms_large_cell=100,
+                 errors_subset_to_catch=None, timeout=28800):
+        """
+        Initializes the handler with the output file to check.
+
+        Args:
+            output_filename (str): This is the file where the stdout for vasp
+                is being redirected. The error messages that are checked are
+                present in the stdout. Defaults to "vasp.out", which is the
+                default redirect used by :class:`custodian.vasp.jobs.VaspJob`.
+            natoms_large_cell (int): Number of atoms threshold to treat cell
+                as large. Affects the correction of certain errors. Defaults to
+                100.
+            errors_subset_to_catch(list): A subset of errors to catch. The
+                default is None, which means all supported errors are detected.
+                Use this to only catch only a subset of supported errors.
+                E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev
+                errors, and not others. If you wish to only excluded one or
+                two of the errors, you can create this list by the following
+                lines:
+
+                ```
+                subset = list(JobTerminator.error_msgs.keys())
+                subset.pop("eddrrm")
+
+                handler = JobTerminator(errors_subset_to_catch=subset)
+                ```
+        """
+        self.output_filename = output_filename
+        self.errors = set()
+        self.error_count = Counter()
+        # threshold of number of atoms to treat the cell as large.
+        self.natoms_large_cell = natoms_large_cell
+        self.errors_subset_to_catch = errors_subset_to_catch or \
+                                      list(JobTerminator.error_msgs.keys())
+        self.timeout = timeout
+
+    def check(self):
+        incar = Incar.from_file("INCAR")
+        self.errors = set()
+        with open(self.output_filename, "r") as f:
+            for line in f:
+                l = line.strip()
+                for err, msgs in JobTerminator.error_msgs.items():
+                    if err in self.errors_subset_to_catch:
+                        for msg in msgs:
+                            if l.find(msg) != -1:
+                                # this checks if we want to run a charged
+                                # computation (e.g., defects) if yes we don't
+                                # want to kill it because there is a change in
+                                # e-density (brmix error)
+                                if err == "brmix" and 'NELECT' in incar:
+                                    continue
+                                self.errors.add(err)
+
+        st = os.stat(self.output_filename)
+        if time.time() - st.st_mtime > self.timeout:
+            return True
+
+        return len(self.errors) > 0
+
+    def correct(self):
+
+        return {"errors": ["Parallelization Monitor"], "actions": None}

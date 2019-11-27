@@ -3,12 +3,13 @@
 # Distributed under the terms of the MIT License
 
 import os
+import numpy as np
 
 from string import ascii_lowercase
 from fireworks import Workflow
 from monty.serialization import loadfn
 from pymatgen.core.surface import Slab, SlabGenerator
-from quotas import QSlab  # TODO: Remove dependency on quotas package!
+from vscworkflows.misc import QSlab
 
 from vscworkflows.fireworks.core import StaticFW, OptimizeFW, OpticsFW, \
     SlabOptimizeFW, SlabDosFW
@@ -199,8 +200,8 @@ def get_wf_energy(structure, directory, functional=("pbe", {}),
 
 
 def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=None,
-                  is_metal=False, in_custodian=False, number_nodes=None,
-                  auto_parallelization=False):
+                  is_metal=False, user_incar_settings=None, in_custodian=False,
+                  number_nodes=None, auto_parallelization=False):
     """
     Set up a workflow to calculate the frequency dependent dielectric matrix.
     Starts with a geometry optimization.
@@ -219,6 +220,11 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             metal, which changes the smearing from Gaussian (0.05 eV) to second
             order Methfessel-Paxton of 0.2 eV; the optics calculation will use a
             generous gaussian smearing of 0.3 eV instead of the tetrahedron method.
+        user_incar_settings (dict): User INCAR settings. This allows a user
+                to override INCAR settings, e.g., setting a different MAGMOM for
+                various elements or species, or specify parallelization settings (
+                KPAR, NPAR, ...). Note that the settings specified here will
+                override the INCAR settings for ALL fireworks of the workflow.
         in_custodian (bool): Flag that indicates whether the calculation should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
@@ -244,6 +250,10 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             {"ISMEAR": 2, "SIGMA": 0.2}
         )
 
+    # Override the INCAR settings with the user specifications
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
+
     # Set up the Firework
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
@@ -266,6 +276,10 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
         k_resolution = k_resolution or 0.1
 
     vasp_input_params["user_kpoints_settings"] = {"k_resolution": k_resolution}
+
+    # Override the INCAR settings with the user specifications
+    if user_incar_settings is not None:
+        vasp_input_params["user_incar_settings"].update(user_incar_settings)
 
     # Set up the geometry optimization Firework
     optics_fw = OpticsFW(
@@ -580,3 +594,64 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
     workflow_name += " " + str(functional)
 
     return Workflow(fireworks=fireworks, name=workflow_name)
+
+
+def get_wf_parallel(structure, directory, nodes, nbands=None,
+                    functional=("pbe", {}), user_kpoints_settings=None,
+                    user_incar_settings=None, handlers=None, cores_per_node=28,
+                    kpar_range=None, min_npar=1):
+    # Set defaults
+    user_kpoints_settings = user_kpoints_settings or {"reciprocal_density": 300}
+    user_incar_settings = user_incar_settings or {}
+    handlers = handlers or []
+    n_cores = int(cores_per_node * nodes)
+    kpar_range = kpar_range or [1, n_cores]
+
+    fw_list = []
+
+    suitable_kpars = np.array(
+        [i for i in range(kpar_range[0], kpar_range[1] + 1)
+         if n_cores % i == 0]
+    )
+
+    for kpar in suitable_kpars:
+
+        cores_per_k = n_cores / kpar
+
+        suitable_npars = np.array(
+            [i for i in range(min_npar, int(cores_per_k) + 1)
+             if cores_per_k % i == 0]
+        )
+
+        if nbands is not None:
+            suitable_npars = [npar for npar in suitable_npars if nbands % npar == 0]
+
+        for npar in suitable_npars:
+            spec = {}
+            # Set up the static calculation
+            spec.update({"_launch_dir": os.path.join(
+                directory, str(nodes) + "nodes", str(kpar) + "kpar",
+                (str(npar) + "npar")
+            )})
+            spec.update({"_fworker": str(nodes) + "nodes"})
+
+            vasp_input_params = _set_up_functional_params(functional)
+            vasp_input_params["user_kpoints_settings"] = user_kpoints_settings
+            vasp_input_params["user_incar_settings"].update(user_incar_settings)
+            vasp_input_params["user_incar_settings"].update(
+                {"KPAR": kpar, "NPAR": npar})
+            vasp_input_params["force_gamma"] = True
+
+            # Set up the Firework and add it to the list
+            fw_list.append(
+                StaticFW(structure=structure,
+                         vasp_input_params=vasp_input_params,
+                         spec=spec,
+                         custodian=handlers)
+            )
+
+    workflow_name = ("Parallel-Test: " + structure.composition.reduced_formula
+                     + " " + str(nodes) + "nodes.")
+
+    # Create the workflow
+    return Workflow(fireworks=fw_list, name=workflow_name)
