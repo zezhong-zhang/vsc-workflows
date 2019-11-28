@@ -272,8 +272,6 @@ class VaspParallelizationTask(FiretaskBase):
         NCORE (int): Override the NCORE value.
 
     """
-    # TODO: Works, but the directory calling seems overkill; clean and test
-
     optional_params = ["directory", "opt_band_parallel", "NBANDS", "KPAR", "NCORE"]
     OPTIMAL_NCORE_DEFAULT_PBE = 7
     OPTIMAL_NPAR_DEFAULT_HSE = 8
