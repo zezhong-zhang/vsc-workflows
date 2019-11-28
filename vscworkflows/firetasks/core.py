@@ -33,11 +33,25 @@ __copyright__ = "Copyright 2019, Marnik Bercx, University of Antwerp"
 __version__ = "pre-alpha"
 __maintainer__ = "Marnik Bercx"
 __email__ = "marnik.bercx@uantwerpen.be"
-__date__ = "Jun 2019"
+__date__ = "Nov 2019"
 
 
 def _find_irr_k_points(directory):
-    # TODO Still fails for many calculations...
+    """
+    Determine the number of irreducible k-points based on the VASP input files in a
+    directory.
+
+    Args:
+        directory (str): Path to the directory that contains the VASP input files.
+
+    Returns:
+        int: Number of irreducible k-points.
+
+    """
+    # TODO Still fails for many calculations.
+    warnings.warn("Currently, the _find_irr_k_points method still fails regularly "
+                  "to find the same number of irreducible k-points as VASP. Use "
+                  "with care.")
 
     directory = os.path.abspath(directory)
 
@@ -58,8 +72,16 @@ def _find_irr_k_points(directory):
 
 
 def _find_fw_structure(firework):
-    # TODO docstring + annotation
+    """
+    Look for the final geometry in the spec/tasks of a Firework.
 
+    Args:
+        firework (Firework): Firework in which to look for the geometry.
+
+    Returns:
+        Last specified geometry in the Firework and its parents.
+
+    """
     structure = None
 
     if "final_geometry" in firework.spec:
@@ -181,7 +203,13 @@ class VaspCustodianTask(FiretaskBase):
         directory (str): Directory in which the VASP calculation should be run.
         stdout_file (str): File to which to direct the stdout during the run.
         stderr_file (str): File to which to direct the stderr during the run.
-
+        handlers (list): List of custodian ErrorHandler instances to use in the
+            custodian run.
+        monitor_freq (int): The number of polling steps before monitoring occurs.
+            As the default polling_time_step is 10 seconds, using e.g. a
+            monitor_freq of 30 (the default) means that Custodian uses the
+            monitors to check for errors every 30 x 10 = 300 seconds, i.e.,
+            5 minutes.
     """
     optional_params = ["directory", "stdout_file", "stderr_file", "handlers",
                        "monitor_freq"]
@@ -245,7 +273,6 @@ class VaspParallelizationTask(FiretaskBase):
 
     """
     # TODO: Works, but the directory calling seems overkill; clean and test
-    # TODO: The current code is not super readable or clean -> Zen it up
 
     optional_params = ["directory", "opt_band_parallel", "NBANDS", "KPAR", "NCORE"]
     OPTIMAL_NCORE_DEFAULT_PBE = 7
@@ -465,6 +492,18 @@ class VaspParallelizationTask(FiretaskBase):
 
 @explicit_serialize
 class IncreaseNumberOfBands(FiretaskBase):
+    """
+    Increase the default number of bands included in a VASP calculation by
+    multiplying it by a specified integer. Useful for calculations that require a
+    large number of unoccupied bands, e.g. for calculating the dielectric tensor.
+
+    Optional params:
+        directory (str): Directory of the VASP run. If not specified, the Task
+            will run in the current directory.
+        multiplier (int): Multiplier used for increasing the VASP default number
+            of bands.
+
+    """
     optional_params = ["directory", "multiplier"]
 
     # TODO: Remove the need for a testrun by obtaining the number of electrons
@@ -582,7 +621,7 @@ class WriteVaspFromIOSet(FiretaskBase):
                               "VaspInputSet, however optional parameter were also "
                               "specified. These will not be used to overwrite the "
                               "settings specified in the VaspInputSet, and will "
-                              "hence be ignored!")
+                              "hence be ignored!")  # TODO: fix this
 
         # If VaspInputSet String + parameters was provided
         else:
@@ -644,9 +683,10 @@ class AddFinalGeometryToSpec(FiretaskBase):
 @explicit_serialize
 class PulayTask(FiretaskBase):
     """
-    Check if the lattice vectors of a structure have changed significantly during
-    the geometry optimization, which could indicate that there where Pulay stresses
-    present. If so, start a new geometry optimization with the final structure.
+    Check a geometry optimization to see if an extra optimization run might be
+    necessary to avoid Pulay stresses, based on a specified condition/tolerance.
+    If so, start a new geometry optimization with the final structure in the same
+    directory.
 
     Required params:
         None
