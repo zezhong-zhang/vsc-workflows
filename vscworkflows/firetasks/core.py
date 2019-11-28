@@ -285,8 +285,9 @@ class VaspParallelizationTask(FiretaskBase):
         kpar = self.get("KPAR", None)
         ncore = self.get("NCORE", None)
 
-        is_hybrid = Incar.from_file(
-            os.path.join(directory, "INCAR")).get("AEXX", 0.0) != 0.0
+        os.chdir(directory)
+
+        is_hybrid = Incar.from_file("INCAR").get("AEXX", 0.0) != 0.0
 
         if is_hybrid:
             opt_band_parallel = self.get(
@@ -320,13 +321,12 @@ class VaspParallelizationTask(FiretaskBase):
                 raise NotImplementedError("Specifying NCORE but not KPAR is "
                                           "currently not possible.")
 
-            os.chdir(directory)
-            stdout_file = os.path.join(directory, "temp.out")
-            stderr_file = os.path.join(directory, "temp.out")
+            stdout_file = "temp.out"
+            stderr_file = "temp.out"
             vasp_cmd = fw_spec["_fw_env"]["vasp_cmd"].split(" ")
 
             try:
-                os.remove(os.path.join(directory, "IBZKPT"))
+                os.remove("IBZKPT")
             except FileNotFoundError:
                 pass
 
@@ -336,18 +336,18 @@ class VaspParallelizationTask(FiretaskBase):
                 p = subprocess.Popen(vasp_cmd, stdout=f_std, stderr=f_err,
                                      preexec_fn=os.setsid)
 
-                while not os.path.exists(os.path.join(directory, "IBZKPT")):
+                while not os.path.exists("IBZKPT"):
                     time.sleep(1)
 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                 time.sleep(3)
 
-            os.remove(os.path.join(directory, "temp.out"))
+            os.remove("temp.out")
 
-            with open(os.path.join(directory, "IBZKPT"), "r") as file:
+            with open("IBZKPT", "r") as file:
                 nkpts = int(file.read().split('\n')[1])
 
-            with open(os.path.join("parallel.out"), "w") as file:
+            with open("parallel.out", "w") as file:
                 file.write("Number_of kpoints = " + str(nkpts) + "\n")
 
             kpar, ncore = self._optimize_parallelization(
@@ -365,7 +365,7 @@ class VaspParallelizationTask(FiretaskBase):
                 nbands=nbands
             )
 
-        with open(os.path.join("parallel.out"), "a+") as file:
+        with open("parallel.out", "a+") as file:
             file.write("Number of cores = " + str(number_of_cores) + "\n")
             file.write("KPAR = " + str(kpar) + "\n")
             file.write("NPAR = " + str(number_of_cores // kpar // ncore) + "\n")
