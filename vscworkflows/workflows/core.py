@@ -75,7 +75,8 @@ def _set_up_functional_params(functional):
 
 
 def get_wf_optimize(structure, directory, functional=("pbe", {}),
-                    is_metal=False, in_custodian=False, number_nodes=None):
+                    is_metal=False, in_custodian=False, number_nodes=None,
+                    auto_parallelization=False):
     """
     Set up a geometry optimization workflow for a bulk structure.
 
@@ -97,6 +98,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
             Is required to add the proper `_fworker` to the Firework spec, so
             it is picked up by a Fireworker running in a job with the specified
             number of nodes.
+        auto_parallelization (bool): Automatically parallelize the calculation
+            using the VaspParallelizationTask.
 
     """
     # Add number of nodes to spec, or "none"
@@ -119,7 +122,8 @@ def get_wf_optimize(structure, directory, functional=("pbe", {}),
     optimize_fw = OptimizeFW(structure=structure,
                              vasp_input_params=vasp_input_params,
                              custodian=in_custodian,
-                             spec=spec)
+                             spec=spec,
+                             auto_parallelization=auto_parallelization)
 
     # Set up a clear name for the workflow
     workflow_name = str(structure.composition.reduced_formula).replace(" ", "")
