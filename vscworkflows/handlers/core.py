@@ -35,6 +35,11 @@ class QuotasErrorHandler(ErrorHandler):
     """
     Quotas VaspErrorHandler class that handles a number of common errors
     that occur during VASP runs.
+
+    Copied and stripped from custodian.vasp.handlers.VaspErrorHandler in order to
+    design a specific ErrorHandler that deals with the issues that occur during
+    the calculations for the Quotas model.
+
     """
 
     is_monitor = True
@@ -57,7 +62,7 @@ class QuotasErrorHandler(ErrorHandler):
             natoms_large_cell (int): Number of atoms threshold to treat cell
                 as large. Affects the correction of certain errors. Defaults to
                 100.
-            errors_subset_to_detect (list): A subset of errors to catch. The
+            errors_subset_to_catch (list): A subset of errors to catch. The
                 default is None, which means all supported errors are detected.
                 Use this to only catch only a subset of supported errors.
                 E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev

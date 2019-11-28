@@ -59,7 +59,7 @@ def _find_irr_k_points(directory):
 
     incar = Incar.from_file(os.path.join(directory, "INCAR"))
     if incar.get("MAGMOM", None) is not None:
-        structure.add_site_property(("magmom"), incar.get("MAGMOM", None))
+        structure.add_site_property("magmom", incar.get("MAGMOM", None))
         structure.add_oxidation_state_by_site(
             [round(magmom, 3) for magmom in structure.site_properties["magmom"]]
         )
@@ -806,5 +806,3 @@ class PulayTask(FiretaskBase):
                                    spec=fw_spec)
 
             return FWAction(detours=optimize_fw)
-
-            # return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])

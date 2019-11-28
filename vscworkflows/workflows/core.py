@@ -231,6 +231,8 @@ def get_wf_optics(structure, directory, functional=("pbe", {}), k_resolution=Non
             Is required to add the proper `_fworker` to the Firework spec, so
             it is picked up by a Fireworker running in a job with the specified
             number of nodes.
+        auto_parallelization (bool): Automatically parallelize the calculation
+            using the VaspParallelizationTask.
 
     """
     # Add number of nodes to spec, or "none"
@@ -314,9 +316,10 @@ def get_wf_slab_optimize(slab, directory, user_slab_settings,
             dynamics of the slab geometry optimization. These are passed to
             the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse06", ...),
-            whereas the second element contains a dictionary that allows the user
-            to specify the various functional INCAR tags.
+            contains a string that indicates the functional used
+            ("pbe", "hse06", ...), whereas the second element contains a
+            dictionary that allows the user to specify the various functional
+            INCAR tags.
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing of the geometry optimization from
             Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
@@ -375,9 +378,10 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
             dynamics of the slab geometry optimization. These are passed to
             the SlabOptimizeSet.fix_slab_bulk() commands as kwargs.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse06", ...),
-            whereas the second element contains a dictionary that allows the user
-            to specify the various functional INCAR tags.
+            contains a string that indicates the functional used
+            ("pbe", "hse06", ...), whereas the second element contains a
+            dictionary that allows the user to specify the various functional
+            INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance between two
             k-points along each reciprocal lattice vector. Note that for a slab
             calculation we always only consider one point in the c-direction.
@@ -386,12 +390,19 @@ def get_wf_slab_dos(slab, directory, user_slab_settings=None,
         is_metal (bool): Flag that indicates the material being studied is a
             metal, which changes the smearing of the geometry optimization from
             Gaussian ( 0.05 eV) to second order Methfessel-Paxton of 0.2 eV.
+        user_incar_settings (dict): User INCAR settings. This allows a user to
+            override INCAR settings, e.g., setting a different MAGMOM for various
+            elements or species, or specify parallelization settings
+            (KPAR, NPAR, ...). Note that the settings specified here will
+            override the INCAR settings for ALL fireworks of the workflow.
         in_custodian (bool): Flag that indicates whether the calculations should be
             run inside a Custodian.
         number_nodes (int): Number of nodes that should be used for the calculations.
             Is required to add the proper `_fworker` to the Firework spec, so
             it is picked up by a Fireworker running in a job with the specified
             number of nodes.
+        auto_parallelization (bool): Automatically parallelize the calculation
+            using the VaspParallelizationTask.
 
     """
     # Add number of nodes to spec, or "none"
@@ -485,9 +496,10 @@ def get_wf_quotas(bulk, slab_list, directory, functional=("pbe", {}),
 
         directory (str): Directory in which the workflow should be set up.
         functional (tuple): Tuple with the functional details. The first element
-            contains a string that indicates the functional used ("pbe", "hse06", ...),
-            whereas the second element contains a dictionary that allows the user
-            to specify the various functional INCAR tags.
+            contains a string that indicates the functional used
+            ("pbe", "hse06", ...), whereas the second element contains a
+            dictionary that allows the user to specify the various functional
+            INCAR tags.
         k_resolution (float): Resolution of the k-mesh, i.e. distance
             between two k-points along each reciprocal lattice vector. Note that
             for a slab calculation we always only consider one point in the
