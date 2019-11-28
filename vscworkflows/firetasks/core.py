@@ -773,12 +773,16 @@ class PulayTask(FiretaskBase):
 
             tasks = list()
 
+            # Change to quasi-Newton scheme
+            incar = Incar.from_file(os.path.join(directory, "INCAR"))
+            incar.update({"IBRION": 1})
+            incar.write_file(os.path.join(directory, "INCAR"))
+
             # Create the ScriptTask that copies the CONTCAR to the POSCAR
             tasks.append(ScriptTask.from_str(
                 "cp " + os.path.join(directory, "CONTCAR") +
                 " " + os.path.join(directory, "POSCAR")
             ))
-            # TODO: Switch to IBRION = 1
 
             # Run the calculation
             if custodian is True:
