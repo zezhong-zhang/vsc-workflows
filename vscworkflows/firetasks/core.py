@@ -768,3 +768,94 @@ class PulayTask(FiretaskBase):
             return FWAction(detours=optimize_fw)
 
             # return FWAction(mod_spec=[{"_push": {"_tasks": tasks}}])
+
+@explicit_serialize
+class WriteDeepMDRaw(FiretaskBase):
+    """
+    Write 'box.raw', 'forces.raw', 'coord.raw', 'energy.raw', 'type.raw' from VASP calculation.
+    The forces, coordinates, energy and box of each frame of MD from OUTCAR, type of element from POSCAR.
+
+    Notes:
+
+
+    Required params:
+
+
+    Optional params:
+
+
+    """
+    required_params = []
+    optional_params = []
+
+    def run_task(self, fw_spec):
+        directory = self.get("directory", os.getcwd())
+        assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisits'
+        outcar = Outcar('OUTCAR')
+
+        # Read positions and forces from OUTCAR
+        header_pattern = r"\s+POSITION\s+TOTAL-FORCE \(eV/Angst\)\s+" \
+                         r"\-+"
+        row_pattern = r"\s+".join([r"([-]?\d+\.\d+)"] * 6)
+        footer_pattern = r"\-+"
+        et_table = outcar.read_table_pattern(header_pattern, row_pattern,
+                                             footer_pattern, postprocess=float, last_one_only=False)
+        # List of list of list!
+        # first layer is all MD frames,
+        # second layer is all atoms in a frame,
+        # third layer is xyz of an atom
+        # supress scientific to float
+        np.set_printoptions(suppress=True)
+        et_table = np.array(et_table)
+        position = et_table[:, :, 0:3]
+        forces = et_table[:, :, 3:6]
+
+        position = position.reshape(position.shape[0], position.shape[1] * position.shape[2])
+        np.savetxt('position.raw', position, delimiter=" ", fmt="%s")
+        forces = forces.reshape(forces.shape[0], forces.shape[1] * forces.shape[2])
+        np.savetxt('forces.raw', forces, delimiter=" ", fmt="%s")
+
+        # get the box
+        header_pattern = r"\s+VOLUME and BASIS-vectors are now :\s+" \
+                         r"\s*\-+" \
+                         r"\s+energy-cutoff\s+:\s+([-]?\d+\.\d+)" \
+                         r"\s+volume of cell\s+:\s+([-]?\d+\.\d+)" \
+                         r"\s+ direct lattice vectors\s+reciprocal lattice vectors\s+"
+        row_pattern = r"\s+".join([r"([-]?\d+\.\d+)"] * 6)
+        footer_pattern = r"\s+length of vectors\s+"
+        et_table = outcar.read_table_pattern(header_pattern, row_pattern,
+                                             footer_pattern, postprocess=float, last_one_only=False)
+        et_table = np.array(et_table)
+        box = et_table[:, :, 0:3]
+        box = box.reshape(box.shape[0], box.shape[1] * box.shape[2])
+        np.savetxt('box.raw', box, delimiter=" ", fmt="%s")
+
+        # get the energy
+        # note that we are looking for the energy that sigma -> 0
+        # see https://cms.mpi.univie.ac.at/vasp/vasp/ISMEAR_SIGMA_FERWE_FERDO_SMEARINGS_tag.html
+        patterns = {
+            "energy": r"\s+energy  without entropy=\s+([\d\-\.]+)\s+ energy\(sigma->0\)\s+=\s+([\d\-\.]+)"
+        }
+        outcar.read_pattern(patterns,
+                            terminate_on_match=False,
+                            postprocess=float)
+        energy = outcar.data["energy"]
+        energy = np.array(energy)
+        energy = energy[:, 1]
+        np.savetxt('energy.raw', energy, delimiter=" ", fmt="%s")
+
+        # get the type of element
+        assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisits'
+        structure = Structure.from_file('POSCAR')
+        species = structure.species
+        element_type_idx = 0
+        element_type_list = []
+        for element in set(species):
+            count = species.count(element)
+            text = [element_type_idx] * count
+            element_type_list.append(text)
+            element_type_idx += 1
+        flat_list = [item for sublist in type_list for item in sublist]
+        np.savetxt('type.raw', flat_list, delimiter=" ", fmt="%s")
+
+
