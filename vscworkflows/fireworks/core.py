@@ -510,7 +510,8 @@ class MDFW(Firework):
                  ensemble=None, thermostat=None,
                  name="molecular dynamics",
                  vasp_input_params=None, parents=None, spec=None,
-                 custodian=False, auto_parallelization=False):
+                 custodian=False, auto_parallelization=False,
+                 deep_MD_files=True):
         """
         Standard firework for a single MD run.
 
@@ -562,6 +563,7 @@ class MDFW(Firework):
             tasks.append(VaspTask())
 
         # Extract the data for DeepMD
-        tasks.append(WriteDeepMDRaw())
+        if deep_MD_files:
+            tasks.append(WriteDeepMDRaw())
 
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)
