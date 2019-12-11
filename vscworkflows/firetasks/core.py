@@ -699,7 +699,7 @@ class PulayTask(FiretaskBase):
 
             "ionic_steps" - (default) Maximum number of ionic steps.
             "energy" - Maximum energy difference between the initial and final
-                geometry of the optimization.
+                geometry of the optimization, expressed in meV/atom.
             "lattice" - Maximum allowed 2-norm of the matrix defined by taking
                 the difference between the initial and final matrices
                 constructed from the lattice vectors.
