@@ -816,10 +816,10 @@ class WriteDeepMDRaw(FiretaskBase):
 
         coord = coord.reshape(coord.shape[0], coord.shape[1] * coord.shape[2])
         np.savetxt('coord.raw', coord, delimiter=" ", fmt="%s")
-        np.save('../set_path/coord',coord)
+        np.save('../{}/coord'.format(set_path),coord)
         force = force.reshape(force.shape[0], force.shape[1] * force.shape[2])
         np.savetxt('force.raw', force, delimiter=" ", fmt="%s")
-        np.save('../set_path/force', force)
+        np.save('../{}/force'.format(set_path), force)
 
         # get the box
         header_pattern = r"\s+VOLUME and BASIS-vectors are now :\s+" \
@@ -835,7 +835,7 @@ class WriteDeepMDRaw(FiretaskBase):
         box = et_table[:, :, 0:3]
         box = box.reshape(box.shape[0], box.shape[1] * box.shape[2])
         np.savetxt('box.raw', box, delimiter=" ", fmt="%s")
-        np.save('../set_path/box', box)
+        np.save('../{}/box'.format(set_path), box)
 
         # get the energy
         # note that we are looking for the energy that sigma -> 0
@@ -850,7 +850,7 @@ class WriteDeepMDRaw(FiretaskBase):
         energy = np.array(energy)
         energy = energy[:, 1]
         np.savetxt('energy.raw', energy, delimiter=" ", fmt="%s")
-        np.save('../set_path/energy', energy)
+        np.save('../{}/energy'.format(set_path), energy)
 
         # get the type of element
         assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisits'
