@@ -856,6 +856,6 @@ class WriteDeepMDRaw(FiretaskBase):
             element_type_list.append(text)
             element_type_idx += 1
         flat_list = [item for sublist in element_type_list for item in sublist]
-        np.savetxt('type.raw', flat_list, delimiter=" ", fmt="%s")
+        np.savetxt('type.raw',flat_list,delimiter=" ", fmt="%s",newline=" ")
 
 
