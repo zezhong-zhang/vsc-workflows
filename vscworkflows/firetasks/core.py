@@ -790,6 +790,10 @@ class WriteDeepMDRaw(FiretaskBase):
 
     def run_task(self, fw_spec):
         directory = self.get("directory", os.getcwd())
+        set=directory.split('/')[-1].rjust(3,'0')
+        set_path='../set.{}'.format(set)
+        os.mkdir(set_path)
+
         assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisits'
         outcar = Outcar('OUTCAR')
 
@@ -807,13 +811,15 @@ class WriteDeepMDRaw(FiretaskBase):
         # supress scientific to float
         np.set_printoptions(suppress=True)
         et_table = np.array(et_table)
-        position = et_table[:, :, 0:3]
-        forces = et_table[:, :, 3:6]
+        coord = et_table[:, :, 0:3]
+        force = et_table[:, :, 3:6]
 
-        position = position.reshape(position.shape[0], position.shape[1] * position.shape[2])
-        np.savetxt('position.raw', position, delimiter=" ", fmt="%s")
-        forces = forces.reshape(forces.shape[0], forces.shape[1] * forces.shape[2])
-        np.savetxt('forces.raw', forces, delimiter=" ", fmt="%s")
+        coord = coord.reshape(coord.shape[0], coord.shape[1] * coord.shape[2])
+        np.savetxt('coord.raw', coord, delimiter=" ", fmt="%s")
+        np.save('../set_path/coord',coord)
+        force = force.reshape(force.shape[0], force.shape[1] * force.shape[2])
+        np.savetxt('force.raw', force, delimiter=" ", fmt="%s")
+        np.save('../set_path/force', force)
 
         # get the box
         header_pattern = r"\s+VOLUME and BASIS-vectors are now :\s+" \
@@ -829,6 +835,7 @@ class WriteDeepMDRaw(FiretaskBase):
         box = et_table[:, :, 0:3]
         box = box.reshape(box.shape[0], box.shape[1] * box.shape[2])
         np.savetxt('box.raw', box, delimiter=" ", fmt="%s")
+        np.save('../set_path/box', box)
 
         # get the energy
         # note that we are looking for the energy that sigma -> 0
@@ -843,6 +850,7 @@ class WriteDeepMDRaw(FiretaskBase):
         energy = np.array(energy)
         energy = energy[:, 1]
         np.savetxt('energy.raw', energy, delimiter=" ", fmt="%s")
+        np.save('../set_path/energy', energy)
 
         # get the type of element
         assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisits'
@@ -857,5 +865,60 @@ class WriteDeepMDRaw(FiretaskBase):
             element_type_idx += 1
         flat_list = [item for sublist in element_type_list for item in sublist]
         np.savetxt('type.raw',flat_list,delimiter=" ", fmt="%s",newline=" ")
+        np.savetxt('../type.raw', flat_list, delimiter=" ", fmt="%s", newline=" ")
 
-
+# @explicit_serialize
+# class DeepMDRawToBinary(FiretaskBase):
+#     """
+#     Concatenate all 'box.raw', 'forces.raw', 'coord.raw', 'energy.raw' in subfolders.
+#     Convert convatenated raw files to sets
+#     And copy 'type.raw' from one of the subfolders
+#
+#     Notes:
+#
+#
+#     Required params:
+#
+#
+#     Optional params:
+#
+#
+#     """
+#     required_params = ["parents"]
+#     optional_params = []
+#
+#     def run_task(self, fw_spec):
+#         if "parents" in self.keys():
+#             try:
+#                 parent_dir = self["parents"]["spec"]["_launch_dir"]
+#         concat_files = ['box.raw', 'forces.raw', 'coord.raw', 'energy.raw']
+#         copy_files = ['type.raw']
+#         directory = self.get("directory", os.getcwd())
+#
+#         file_path = []
+#         os.chdir(rootdir)
+#         for file in concat_files+copy_files:
+#             os.remove(file)
+#
+#         # create a dictionary with file names as keys
+#         # and for each file name the paths where they
+#         # were found
+#         file_paths = {}
+#         for root, dirs, files in os.walk(rootdir):
+#             for f in files:
+#                 if f.endswith('.raw'):
+#                     if f not in file_paths:
+#                         file_paths[f] = []
+#                     file_paths[f].append(root)
+#
+#         # for each file in the dictionary, concatenate
+#         # the content of the files in each directory
+#         # and write the merged content into a file
+#         # with the same name at the top directory
+#         for f, paths in file_paths.items():
+#             txt = []
+#             for p in paths:
+#                 with open(os.path.join(p, f)) as fin:
+#                     txt.append(fin.read())
+#             with open(f, 'w') as fout:
+#                 fout.write(''.join(txt))
