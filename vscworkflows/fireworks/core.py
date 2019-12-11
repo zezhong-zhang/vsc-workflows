@@ -560,6 +560,8 @@ class MDFW(Firework):
             tasks.append(VaspCustodianTask(handlers=custodian))
         else:
             tasks.append(VaspTask())
+
+        # Extract the data for DeepMD
         tasks.append(WriteDeepMDRaw())
 
         super().__init__(tasks=tasks, name=name, parents=parents, spec=spec)

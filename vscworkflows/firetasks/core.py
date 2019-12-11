@@ -790,8 +790,8 @@ class WriteDeepMDRaw(FiretaskBase):
 
     def run_task(self, fw_spec):
         directory = self.get("directory", os.getcwd())
-        set=directory.split('/')[-1].rjust(3,'0')
-        set_path='../set.{}'.format(set)
+        set = directory.split('/')[-1].rjust(3, '0')
+        set_path = '../set.{}'.format(set)
         os.mkdir(set_path)
 
         assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisits'
@@ -866,59 +866,3 @@ class WriteDeepMDRaw(FiretaskBase):
         flat_list = [item for sublist in element_type_list for item in sublist]
         np.savetxt('type.raw',flat_list,delimiter=" ", fmt="%s",newline=" ")
         np.savetxt('../type.raw', flat_list, delimiter=" ", fmt="%s", newline=" ")
-
-# @explicit_serialize
-# class DeepMDRawToBinary(FiretaskBase):
-#     """
-#     Concatenate all 'box.raw', 'forces.raw', 'coord.raw', 'energy.raw' in subfolders.
-#     Convert convatenated raw files to sets
-#     And copy 'type.raw' from one of the subfolders
-#
-#     Notes:
-#
-#
-#     Required params:
-#
-#
-#     Optional params:
-#
-#
-#     """
-#     required_params = ["parents"]
-#     optional_params = []
-#
-#     def run_task(self, fw_spec):
-#         if "parents" in self.keys():
-#             try:
-#                 parent_dir = self["parents"]["spec"]["_launch_dir"]
-#         concat_files = ['box.raw', 'forces.raw', 'coord.raw', 'energy.raw']
-#         copy_files = ['type.raw']
-#         directory = self.get("directory", os.getcwd())
-#
-#         file_path = []
-#         os.chdir(rootdir)
-#         for file in concat_files+copy_files:
-#             os.remove(file)
-#
-#         # create a dictionary with file names as keys
-#         # and for each file name the paths where they
-#         # were found
-#         file_paths = {}
-#         for root, dirs, files in os.walk(rootdir):
-#             for f in files:
-#                 if f.endswith('.raw'):
-#                     if f not in file_paths:
-#                         file_paths[f] = []
-#                     file_paths[f].append(root)
-#
-#         # for each file in the dictionary, concatenate
-#         # the content of the files in each directory
-#         # and write the merged content into a file
-#         # with the same name at the top directory
-#         for f, paths in file_paths.items():
-#             txt = []
-#             for p in paths:
-#                 with open(os.path.join(p, f)) as fin:
-#                     txt.append(fin.read())
-#             with open(f, 'w') as fout:
-#                 fout.write(''.join(txt))
