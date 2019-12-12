@@ -670,6 +670,14 @@ class WriteVaspFromIOSet(FiretaskBase):
 
 @explicit_serialize
 class AddFinalGeometryToSpec(FiretaskBase):
+    """
+    Add the final geometry in the current or specified directory to the FireTask.
+    
+    Optional params:
+        directory (str): Path to the directory which the geometry should be 
+            extracted from.
+        
+    """  # TODO: remove the Final in the name of the firetask
     required_params = []
     optional_params = ["directory"]
 
