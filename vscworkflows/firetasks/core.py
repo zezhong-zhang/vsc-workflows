@@ -102,6 +102,8 @@ def _find_fw_structure(firework):
                     break
                 except TypeError:
                     pass
+                except AttributeError:
+                    pass
 
                 try:
                     structure = _find_fw_structure(
