@@ -792,8 +792,10 @@ class WriteDeepMDRaw(FiretaskBase):
         directory = self.get("directory", os.getcwd())
         set = directory.split('/')[-1].rjust(3, '0')
         set_path = '../set.{}'.format(set)
-        if os.path.isdir(set_path) is False:
+        if os.path.exists(set_path) is False:
             os.mkdir(set_path)
+        else:
+            pass
 
         assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisits'
         outcar = Outcar('OUTCAR')
