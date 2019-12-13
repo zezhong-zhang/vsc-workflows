@@ -858,11 +858,10 @@ class WriteDeepMDRaw(FiretaskBase):
         # get the type of element
         assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisit'
         structure = Structure.from_file('POSCAR')
-        species = set(structure.species)
         element_type_idx = 0
         element_type_list = []
-        for element in species:
-            count = species.count(element)
+        for element in set(structure.species):
+            count = structure.species.count(element)
             text = [element_type_idx] * count
             element_type_list.append(text)
             element_type_idx += 1
