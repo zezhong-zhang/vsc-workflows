@@ -790,14 +790,14 @@ class WriteDeepMDRaw(FiretaskBase):
 
     def run_task(self, fw_spec):
         directory = self.get("directory", os.getcwd())
-        set = directory.split('/')[-1].rjust(3, '0')
-        set_path = '../set.{}'.format(set)
+        set_num = directory.split('/')[-1].rjust(3, '0')
+        set_path = '../set.{}'.format(set_num)
         if os.path.exists(set_path) is False:
             os.mkdir(set_path)
         else:
             pass
 
-        assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisits'
+        assert os.path.exists(os.path.join(directory, "OUTCAR")),'OUTCAR does not exisit'
         outcar = Outcar('OUTCAR')
 
         # Read positions and forces from OUTCAR
@@ -856,16 +856,16 @@ class WriteDeepMDRaw(FiretaskBase):
         np.save('{}/energy'.format(set_path), energy)
 
         # get the type of element
-        assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisits'
+        assert os.path.exists(os.path.join(directory, "POSCAR")), 'POSCAR does not exisit'
         structure = Structure.from_file('POSCAR')
-        species = structure.species
+        species = set(structure.species)
         element_type_idx = 0
         element_type_list = []
-        for element in set(species):
+        for element in species:
             count = species.count(element)
             text = [element_type_idx] * count
             element_type_list.append(text)
             element_type_idx += 1
         flat_list = [item for sublist in element_type_list for item in sublist]
-        np.savetxt('type.raw',flat_list,delimiter=" ", fmt="%s",newline=" ")
+        np.savetxt('type.raw', flat_list, delimiter=" ", fmt="%s",newline=" ")
         np.savetxt('../type.raw', flat_list, delimiter=" ", fmt="%s", newline=" ")
