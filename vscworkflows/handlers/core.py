@@ -229,7 +229,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         """
         self.min_electronic_steps = min_electronic_steps
         self.max_allowed_incline = max_allowed_incline
-        self.max_interp_range = max_fit_range
+        self.max_fit_range = max_fit_range
         self.output_data = output_data
 
     def check(self):
@@ -250,8 +250,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
             if len(residual_charge) + nelmdl > self.min_electronic_steps:
 
                 current_incline = np.polyfit(
-                    x=range(min([len(residual_charge), self.max_interp_range])),
-                    y=residual_charge[-self.max_interp_range:],
+                    x=range(min([len(residual_charge), self.max_fit_range])),
+                    y=residual_charge[-self.max_fit_range:],
                     deg=1
                 )[0]
 
@@ -264,9 +264,9 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
                     for i in range(self.min_electronic_steps, len(residual_charge)):
                         incline_per_step.append(
-                            np.polyfit(range(min([i, self.max_interp_range])),
+                            np.polyfit(range(min([i, self.max_fit_range])),
                                        residual_charge[
-                                       max([0, i - self.max_interp_range]):i], 1)[0]
+                                       max([0, i - self.max_fit_range]):i], 1)[0]
                         )
 
                     ax1 = plt.subplot(2, 1, 1)
