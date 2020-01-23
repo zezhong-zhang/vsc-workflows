@@ -775,6 +775,37 @@ class SolarCell(MSONable):
     def get_iv_curve(self, j_sc, j_0, temperature):
         pass
 
+    def as_dict(self):
+        """
+        Note: stores the real and imaginary part of the dielectric tensor
+        separately, due to issues with JSON serializing complex numbers.
+
+        Returns:
+            dict: Dictionary representation of the DielTensor instance.
+        """
+        d = dict()
+        d["dieltensor"] = self._dieltensor.as_dict()
+        d["bandgaps"] = self._bandgaps
+
+        return d
+
+    @classmethod
+    def from_dict(cls, d):
+        """
+        Initializes a DielTensor object from a dictionary.
+
+        Args:
+            d (dict): Dictionary from which the DielTensor should be initialized.
+
+        Returns:
+            DielTensor
+
+        """
+        dieltensor = DielTensor.from_dict(d["dieltensor"])
+        bandgaps = d["bandgaps"]
+
+        return cls(dieltensor, bandgaps)
+
     @classmethod
     def from_file(cls, filename):
         """
