@@ -485,7 +485,7 @@ class SlabDosFW(Firework):
             tasks.append(VaspParallelizationTask())
 
         # Increase the number of bands, unless the user specified NBANDS
-        if not "NBANDS" in vasp_input_params["user_incar_settings"].keys():
+        if "NBANDS" not in vasp_input_params["user_incar_settings"].keys():
             tasks.append(IncreaseNumberOfBands(multiplier=bands_multiplier))
 
         # Run the calculation

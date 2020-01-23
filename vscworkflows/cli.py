@@ -25,7 +25,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 def _load_launchpad(name="base"):
     """
-    Load the launchpad from the configuration folder in $HOME/.workflow_config/launchpad.
+    Load the launchpad from the configuration folder in
+    $HOME/.workflow_config/launchpad.
 
     Args:
         name (str): Name of the launchpad. Defaults to "base".
@@ -39,8 +40,10 @@ def _load_launchpad(name="base"):
             return load_config("launchpad", name)
         except FileNotFoundError:
             raise FileNotFoundError(
-                "Could not find requested launchpad in $HOME/.workflow_config/launchpad. "
-                "Use 'vsc config launchpad' to set up new launchpads.")
+                "Could not find requested launchpad in "
+                "$HOME/.workflow_config/launchpad.  Use 'vsc config launchpad' to "
+                "set up new launchpads."
+            )
     else:
         # Try loading the base launchpad
         try:
@@ -63,24 +66,26 @@ def main():
 
 @main.command(context_settings=CONTEXT_SETTINGS)
 @click.option("-l", "--lpad_name", default="base",
-              help="Name of the configured launchpad that contains the details of the "
-                   "mongoDB server you want to run Fireworks from. Defaults to 'base'.")
+              help="Name of the configured launchpad that contains the details "
+                   "of the  mongoDB server you want to run Fireworks from. "
+                   "Defaults to 'base'.")
 @click.option("-f", "--fworker_name", default="base",
-              help="Name of the fireworker which you are submitting the jobs to, i.e. "
-                   "the cluster you are currently logged into. Defaults to 'base'. If "
-                   "you have configured the workflows for another cluster (e.g. hopper), "
-                   "you can use this option to use that configuration.")
+              help="Name of the fireworker which you are submitting the jobs to, "
+                   "i.e.  the cluster you are currently logged into. Defaults to "
+                   "'base'. If  you have configured the workflows for another "
+                   "cluster (e.g. hopper), you can use this option to use that "
+                   "configuration.")
 @click.option("-n", "--number_nodes", default=1,
-              help="Number of nodes to request for the job. This will be added to the "
-                   "category of the fireworker, so it will pick up Fireworks with the "
-                   "same category.")
+              help="Number of nodes to request for the job. This will be change "
+                   "the name of the fireworker, so it will pick up Fireworks "
+                   "which have _fworker specified.")
 @click.option("-t", "--walltime", default=72,
               help="Walltime of the job, expressed in hours. Defaults to 72.")
 @click.option("-j", "--number_jobs", default=1,
               help="The number of jobs to submit to the queue.")
 @click.option("--hog", is_flag=True,
-              help="Hog the nodes for the whole walltime, i.e. do not stop the job in "
-                   "case there are no more Fireworks to be launched.")
+              help="Hog the nodes for the whole walltime, i.e. do not stop the "
+                   "job in case there are no more Fireworks to be launched.")
 def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs, hog):
     """
     Launch jobs to the queue that will accept Fireworks.
@@ -120,18 +125,14 @@ def qlaunch(lpad_name, fworker_name, number_nodes, walltime, number_jobs, hog):
               sleep_time=0, reserve=False, fill_mode=True)
 
 
-# TODO Add checks for U-value input
-
-# region * Config
-
 @main.group(context_settings=CONTEXT_SETTINGS)
 def config():
     """
     Configure the Workflows setup.
 
     In order to submit and run workflows, you need to configure your fireworker and
-    launchpad. Examples of configuration files and more information can be found in the
-    vscworkflows/examples/config folder:
+    launchpad. Examples of configuration files and more information can be found in
+    the vscworkflows/examples/config folder:
 
     https://github.com/mbercx/pybat/tree/master/vscworkflows/examples/config
     TODO: update
@@ -148,8 +149,8 @@ def launchpad(launchpad_file, name):
     Configure a Workflows server or launchpad.
 
     Although the information can be put in manually when using the command without
-    options, it's probably easiest to first set up the launchpad file and then use the
-    '-l' option to configure the launchpad based on this file.
+    options, it's probably easiest to first set up the launchpad file and then use
+    the '-l' option to configure the launchpad based on this file.
 
     Note that specifying a name for the launchpad allows you to differentiate between
     different database servers when submitting workflows or using 'vsc qlaunch'. If
@@ -169,8 +170,8 @@ def fworker(fworker_file, name):
     Configure the basic settings of a fireworker.
 
     Although the information can be put in manually when using the command without
-    options, it's probably easiest to first set up the fireworker file and then use the
-    '-f option to configure the fireworker based on this file.
+    options, it's probably easiest to first set up the fireworker file and then use
+    the '-f option to configure the fireworker based on this file.
 
     Note that specifying a name for the fworker allows you to configure multiple
     computational resources or settings.
@@ -211,5 +212,3 @@ def jobscript(template_file, name):
 def check():
     from vscworkflows.config import check
     check()
-
-# endregion
