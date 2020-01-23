@@ -750,10 +750,11 @@ class SolarCell(MSONable):
 
         """
         thickness = 10 ** np.linspace(-9, -3, 40)
-        efficiency = np.array([self.slme(thickness=d, temperature=temperature,
-                                         cut_abs_below_bandgap=cut_abs_below_bandgap)[
-                                   0]
-                               for d in thickness])
+        efficiency = np.array(
+            [self.slme(thickness=d, temperature=temperature,
+                       cut_abs_below_bandgap=cut_abs_below_bandgap)[0]
+             for d in thickness]
+        )
 
         plt.plot(thickness, efficiency)
         if add_sq_limit:
