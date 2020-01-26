@@ -10,6 +10,7 @@ import cmath
 import json
 import math
 import os
+import warnings
 from fnmatch import fnmatch
 from xml.etree.ElementTree import ParseError
 
@@ -197,6 +198,37 @@ class DielTensor(MSONable):
         loss_function[np.isnan(loss_function)] = 0
 
         return loss_function
+
+    def shift_imaginary(self, shift):
+        """
+        Shift the imaginary part.
+
+        Args:
+            shift:
+
+        Returns:
+
+        """
+        # Note: Check index N=1 because N=0 is always zero
+        if not (self.dielectric_tensor[1, :, :].imag == np.zeros(3)).all():
+            warnings.warn("Onset of the imaginary part of the dielectric tensor "
+                          "starts at zero. This indicates that the material is "
+                          "metallic, and that shifting the imaginary function "
+                          "might not make a lot of sense.")
+
+        interp_function = interp1d(self.energies, self.dielectric_tensor.imag,
+                                   axis=0, bounds_error=False, fill_value=0)
+
+        imag_diel = interp_function(self._energies - shift)
+
+        if not (imag_diel[1, :, :] == np.zeros(3)).all():
+            warnings.warn("The requested shift sets the onset of the imaginary "
+                          "part of the dielectric tensor at zero, effectively "
+                          "turning the material metallic.")
+
+        real_diel = kkr(np.average(np.diff(self.energies)), imag_diel, 1e-3)
+
+        self._dielectric_tensor = real_diel + imag_diel*1j
 
     def plot(self, part="diel", variable_range=None, diel_range=None):
         """
@@ -662,26 +694,34 @@ class SolarCell(MSONable):
 
         """
         # Set up the energy grid for the calculation
-        energy = self.dieltensor.energies
-        energy = np.linspace(
-            np.min(energy) + interp_mesh, np.max(energy),
-            np.ceil((np.max(energy) - np.min(energy)) / interp_mesh)
-        )
-
-        # Interpolation of the absorptivity to the new energy grid
-        absorptivity = interp1d(
-            self._dieltensor.energies,
-            self._dieltensor.get_absorptivity(thickness, "beer-lambert"),
-            kind='linear',
-            fill_value=0,
-            bounds_error=False
-        )(energy)
+        energies = self.dieltensor.energies
+        abs_coeff = self.dieltensor.absorption_coefficient
 
         # If the user has requested the onset below the band gap to be removed
         if cut_abs_below_bandgap:
             # Set the absorptivity to zero for energies below the *direct* band gap
-            cut_array = np.array([int(el) for el in energy > self.bandgaps[1]])
-            absorptivity *= cut_array
+            abs_coeff[energies < self.bandgaps[1]] = 0
+
+        bandgap_index = np.where(energies < self.bandgaps[1])[0][-1]
+        if abs_coeff[bandgap_index] != 0:
+            warnings.warn("Found non-zero absorption below the direct band gap. "
+                          "This may be an indication that the imaginary part of "
+                          "the dielectric function was smeared by the VASP "
+                          "calculation.")
+        else:
+            energies = np.insert(energies, bandgap_index, self.bandgaps[1])
+            abs_coeff = np.insert(abs_coeff, bandgap_index, 0)
+
+        energy = np.linspace(
+            np.min(energies) + interp_mesh, np.max(energies),
+            int(np.ceil((np.max(energies) - np.min(energies)) / interp_mesh))
+        )
+        # Interpolation of the absorptivity to the new energy grid
+        abs_coeff = interp1d(
+            energies, abs_coeff, kind='linear', fill_value=0, bounds_error=False
+        )(energy)
+
+        absorptivity = 1.0 - np.exp(-2.0 * abs_coeff * thickness)
 
         # Load energy-dependent total solar spectrum photon flux
         # (~m^{-2}s^{-1}eV^{-1})
@@ -730,8 +770,29 @@ class SolarCell(MSONable):
 
         return efficiency, v_oc, j_sc, j_0
 
+    def calculate_bandgap_sq(self, temperature=298.15, fr=1.0, interp_mesh=0.001):
+        """
+        Calculate the Shockley-Queisser limit of the corresponding fundamental
+        band gap.
+
+        Args:
+            temperature (float): Temperature of the solar cell. Defaults to 25 °C,
+                 or 298.15 K.
+            fr (float): Fraction of radiative recombination.
+            interp_mesh (float): Distance between two energy points in the grid
+                used for the interpolation.
+
+        Returns:
+            (float): Shockley-Queisser detailed balance limit of the band gap of
+                the material.
+
+        """
+        return self.sq(self._bandgaps[1], temperature, fr, interp_mesh,
+                       np.max(self.dieltensor.energies))
+
     def plot_slme_vs_thickness(self, temperature=298.15, add_sq_limit=True,
-                               cut_abs_below_bandgap=False):
+                               cut_abs_below_bandgap=False, add_to_axis=None,
+                               **kwargs):
         """
         Make a plot of the calculated SLME for a large range of thickness values,
         for a specific temperature.
@@ -756,24 +817,58 @@ class SolarCell(MSONable):
              for d in thickness]
         )
 
-        plt.plot(thickness, efficiency)
-        if add_sq_limit:
-            plt.plot(thickness, np.ones(thickness.shape)
-                     * self.calculate_bandgap_sq(temperature=temperature)[0], 'k--')
-            plt.legend(("SLME", "SQ"))
-        else:
-            plt.legend(("SLME",))
-        plt.xlabel("Thickness (m)")
-        plt.ylabel("Efficiency")
-        plt.xscale("log")
+        if add_to_axis is not None:
 
-        plt.show()
+            add_to_axis.plot(thickness, efficiency, **kwargs)
+
+            if add_sq_limit:
+                add_to_axis.axhline(
+                    self.calculate_bandgap_sq(temperature=temperature)[0],
+                    color="k", linestyle='--'
+                )
+
+        else:
+            plt.plot(thickness, efficiency)
+            if add_sq_limit:
+                plt.axhline(self.calculate_bandgap_sq(temperature=temperature)[0],
+                            color="k", linestyle='--')
+                plt.legend(("SLME", "SQ"))
+            else:
+                plt.legend(("SLME",))
+
+            plt.xlabel("Thickness (m)")
+            plt.ylabel("Efficiency")
+            plt.xscale("log")
+
+            plt.show()
 
     def get_currents(self, temperature):
         pass
 
-    def get_iv_curve(self, j_sc, j_0, temperature):
-        pass
+    def get_iv_curve(self, temperature=298.15, thickness=5e-7, interp_mesh=0.001,
+                     cut_abs_below_bandgap=False, iv_mesh=0.01, add_to_axis=None):
+
+        # TODO: improve modularization!
+
+        v_oc, j_sc, j_0 = self.slme(
+            temperature=temperature, thickness=thickness, interp_mesh=interp_mesh,
+            cut_abs_below_bandgap=cut_abs_below_bandgap
+        )[1:]
+
+        voltage = np.linspace(0, v_oc, int(v_oc / iv_mesh))
+
+        j = j_sc - j_0 * (np.exp(e * voltage / (k * temperature)) - 1.0)
+        p = j * voltage
+
+        if add_to_axis:
+
+            add_to_axis.plot(voltage, j, 'k')
+            add_to_axis.plot(voltage, p, "k--")
+
+        else:
+
+            plt.plot(voltage, j, 'k')
+            plt.plot(voltage, p, "k--")
 
     def as_dict(self):
         """
@@ -885,26 +980,6 @@ class SolarCell(MSONable):
         """
         return SolarCell.from_file(filename).slme(temperature, thickness)
 
-    def calculate_bandgap_sq(self, temperature=298.15, fr=1.0, interp_mesh=0.001):
-        """
-        Calculate the Shockley-Queisser limit of the corresponding fundamental
-        band gap.
-
-        Args:
-            temperature (float): Temperature of the solar cell. Defaults to 25 °C,
-                 or 298.15 K.
-            fr (float): Fraction of radiative recombination.
-            interp_mesh (float): Distance between two energy points in the grid
-                used for the interpolation.
-
-        Returns:
-            (float): Shockley-Queisser detailed balance limit of the band gap of
-                the material.
-
-        """
-        return self.sq(self._bandgaps[0], temperature, fr, interp_mesh,
-                       np.max(self.dieltensor.energies))
-
     @staticmethod
     def sq(bandgap, temperature=298.15, fr=1.0, interp_mesh=0.001, max_energy=20.0):
         """
@@ -926,13 +1001,11 @@ class SolarCell(MSONable):
         """
         # Set up the energy grid for the calculation
         energy = np.linspace(
-            interp_mesh, max_energy, np.ceil(max_energy) / interp_mesh
+            interp_mesh, max_energy, int(np.ceil(max_energy) / interp_mesh)
         )
 
         # Set up the absorption coefficient (Step function for SQ)
-        absorptivity = np.array(
-            [float(ener > bandgap) for ener in energy]
-        )
+        absorptivity = (energy >= bandgap).astype(float)
 
         # Get total solar_spectrum
         solar_spectrum = \
@@ -949,6 +1022,12 @@ class SolarCell(MSONable):
         # Numerically integrating irradiance over wavelength array ~ A/m**2
         j_sc = e * simps(solar_spectrum * absorptivity, energy)
 
+        # Determine the open circuit voltage.
+        v_oc = 0
+        voltage_step = 0.001
+        while j_sc - j_0 * (np.exp(e * v_oc / (k * temperature)) - 1.0) > 0:
+            v_oc += voltage_step
+
         # Maximize the power versus the voltage
         max_power = SolarCell.maximize_power(j_sc, j_0, temperature)
 
@@ -958,7 +1037,7 @@ class SolarCell(MSONable):
         # Calculate the maximized efficiency
         efficiency = max_power / power_in
 
-        return efficiency, j_sc, j_0
+        return efficiency, v_oc, j_sc, j_0
 
 
 # Utility method
@@ -982,3 +1061,35 @@ def to_matrix(xx, yy, zz, xy, yz, xz):
     """
     matrix = np.array([[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]])
     return matrix
+
+
+# Copied from https://github.com/utf/kramers-kronig/blob/master/kkr.py
+# All copyright belongs to Alex Ganose
+
+def kkr(de, eps_imag, cshift=1e-6):
+    """Calculate the Kramers-Kronig transformation on imaginary part of dielectric
+    Doesn't correct for any artefacts resulting from finite window function.
+    Args:
+        de (float): Energy grid size at which the imaginary dielectric constant
+            is given. The grid is expected to be regularly spaced.
+        eps_imag (np.array): A numpy array with dimensions (n, 3, 3), containing
+            the imaginary part of the dielectric tensor.
+        cshift (float, optional): The implemented method includes a small
+            complex shift. A larger value causes a slight smoothing of the
+            dielectric function.
+    Returns:
+        A numpy array with dimensions (n, 3, 3) containing the real part of the
+        dielectric function.
+    """
+    eps_imag = np.array(eps_imag)
+    nedos = eps_imag.shape[0]
+    cshift = complex(0, cshift)
+    w_i = np.arange(0, nedos * de, de, dtype=np.complex_)
+    w_i = np.reshape(w_i, (nedos, 1, 1))
+
+    def integration_element(w_r):
+        factor = w_i / (w_i ** 2 - w_r ** 2 + cshift)
+        total = np.sum(eps_imag * factor, axis=0)
+        return total * (2 / math.pi) * de + np.diag([1, 1, 1])
+
+    return np.real([integration_element(w_r) for w_r in w_i[:, 0, 0]])
