@@ -201,12 +201,12 @@ class DielTensor(MSONable):
 
     def shift_imaginary(self, shift):
         """
-        Shift the imaginary part.
+        Shift the imaginary part of the dielectric tensor by a specified value.
 
         Args:
-            shift:
-
-        Returns:
+            shift (float): Requested shift to apply to the imaginary part of the
+                dielectric tensor. Positive values shift the onset to higher
+                energies, negative shift it to lower energies.
 
         """
         # Note: Check index N=1 because N=0 is always zero
@@ -872,14 +872,16 @@ class SolarCell(MSONable):
 
     def shift_bandgap_to(self, bandgap, is_direct=True):
         """
+        Method that shifts the optical/direct (default) or fundamental bandgap to
+        a specified value. Useful when the bandgap is determined with a
+        different, more accurate, method than the dielectric tensor. Adjusts both
+        the imaginary part of the dielectric tensor as well as the band gaps.
 
         Args:
-            bandgap (float): New band gap
-            is_direct (bool): Whether or not the band gap is the direct (optical)
-                band gap.
-
-        Returns:
-
+            bandgap (float): New user-specified band gap.
+            is_direct (bool): Whether or not the specified band gap is the direct
+                (optical) band gap. If set to False, the fundamental band gap is
+                expected.
         """
         if is_direct:
             shift = bandgap - self._bandgaps[1]
