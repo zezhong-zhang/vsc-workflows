@@ -228,7 +228,7 @@ class DielTensor(MSONable):
 
         real_diel = kkr(np.average(np.diff(self.energies)), imag_diel, 1e-3)
 
-        self._dielectric_tensor = real_diel + imag_diel*1j
+        self._dielectric_tensor = real_diel + imag_diel * 1j
 
     def plot(self, part="diel", variable_range=None, diel_range=None):
         """
@@ -869,6 +869,26 @@ class SolarCell(MSONable):
 
             plt.plot(voltage, j, 'k')
             plt.plot(voltage, p, "k--")
+
+    def shift_bandgap_to(self, bandgap, is_direct=True):
+        """
+
+        Args:
+            bandgap (float): New band gap
+            is_direct (bool): Whether or not the band gap is the direct (optical)
+                band gap.
+
+        Returns:
+
+        """
+        if is_direct:
+            shift = bandgap - self._bandgaps[1]
+            self._bandgaps = [self._bandgaps[0] + shift, bandgap]
+        else:
+            shift = bandgap - self._bandgaps[0]
+            self._bandgaps = [bandgap, self._bandgaps[1] + shift]
+
+        self._dieltensor.shift_imaginary(shift)
 
     def as_dict(self):
         """
