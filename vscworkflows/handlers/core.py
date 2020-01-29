@@ -408,7 +408,9 @@ class JobTerminator(ErrorHandler):
         "eddrmm": ["WARNING in EDDRMM: call to ZHEGV failed"],
         "edddav": ["Error EDDDAV: Call to ZHEGV failed"],
         "zheev": ["ERROR EDDIAG: Call to routine ZHEEV failed!"],
-        "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to DGEMV"]
+        "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to "
+                      "DGEMV"],
+        "edwav": ["EDWAV: internal error, the gradient is not orthogonal"]
     }
 
     def __init__(self, output_filename="vasp.out", natoms_large_cell=100,
@@ -424,7 +426,7 @@ class JobTerminator(ErrorHandler):
             natoms_large_cell (int): Number of atoms threshold to treat cell
                 as large. Affects the correction of certain errors. Defaults to
                 100.
-            errors_subset_to_catch(list): A subset of errors to catch. The
+            errors_subset_to_catch (list): A subset of errors to catch. The
                 default is None, which means all supported errors are detected.
                 Use this to only catch only a subset of supported errors.
                 E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev
