@@ -29,8 +29,8 @@ def launchpad(launchpad_file=None, lpad_name="base"):
     server.
 
     Args:
-        launchpad_file (str): my_launchpad.yaml file from which to load the mongoDB database
-            details.
+        launchpad_file (str): my_launchpad.yaml file from which to load the
+            mongoDB database details.
         lpad_name (str): Name to give to the database in the configuration setup.
 
     Returns:
@@ -75,7 +75,8 @@ def fworker(fireworker_file=None, fworker_name="base"):
     Script to set up the configuration of the fireworker.
 
     Args:
-        fireworker_file (str): fworker.yaml file from which to configure the fireworker.
+        fireworker_file (str): fworker.yaml file from which to configure the
+            fireworker.
         fworker_name (str): Which fworker configuration to add the fireworker to.
 
     Returns:
@@ -92,10 +93,10 @@ def fworker(fireworker_file=None, fworker_name="base"):
 
     # Make sure the fireworker has the required node categories.
     if fireworker.category:
-        print("\nNote: The category in the fireworker file has been adjuster to make "
-              "sure that the jobs submitted on this fireworker only pick up the "
-              "Fireworks with the correct category setting, i.e. corresponding to a "
-              "number of nodes.\n")
+        print("\nNote: The category in the fireworker file has been adjuster to "
+              "make sure that the jobs submitted on this fireworker only pick up "
+              "the Fireworks with the correct category setting, i.e. corresponding "
+              "to a number of nodes.\n")
     fireworker.category = ["none", "1nodes"]
 
     try:
@@ -114,16 +115,17 @@ def fworker(fireworker_file=None, fworker_name="base"):
 
 def qadapter(qadapter_file=None, fworker_name="base"):
     """
-    Script to set up the configuration of the queueing system. Note that we store the
-    queue_adapter in the same configuration directory as the Fireworker, i.e. fworker.
-    This is in the assumption that each worker has one preferred queueing system.
+    Script to set up the configuration of the queueing system. Note that we store
+    the queue_adapter in the same configuration directory as the Fireworker,
+    i.e. fworker. This is in the assumption that each worker has one preferred
+    queueing system.
 
     Args:
-        qadapter_file (str): my_qadapter_file.yaml from which to configure the queue
-            adapter.
-        fworker_name (str): Which fworker configuration to add the queue
-            adapter to. Note that there has to be a corresponding job_template.sh file
-            for the queue adapter to adjust before submitting it to the fireworker queue.
+        qadapter_file (str): my_qadapter_file.yaml from which to configure the
+            queue adapter.
+        fworker_name (str): Which fworker configuration to add the queue adapter
+            to. Note that there has to be a corresponding job_template.sh file for
+            the queue adapter to adjust before submitting it to the fireworker queue.
 
     Returns:
         None

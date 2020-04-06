@@ -35,6 +35,11 @@ class QuotasErrorHandler(ErrorHandler):
     """
     Quotas VaspErrorHandler class that handles a number of common errors
     that occur during VASP runs.
+
+    Copied and stripped from custodian.vasp.handlers.VaspErrorHandler in order to
+    design a specific ErrorHandler that deals with the issues that occur during
+    the calculations for the Quotas model.
+
     """
 
     is_monitor = True
@@ -57,7 +62,7 @@ class QuotasErrorHandler(ErrorHandler):
             natoms_large_cell (int): Number of atoms threshold to treat cell
                 as large. Affects the correction of certain errors. Defaults to
                 100.
-            errors_subset_to_detect (list): A subset of errors to catch. The
+            errors_subset_to_catch (list): A subset of errors to catch. The
                 default is None, which means all supported errors are detected.
                 Use this to only catch only a subset of supported errors.
                 E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev
@@ -224,7 +229,7 @@ class ElectronicConvergenceMonitor(ErrorHandler):
         """
         self.min_electronic_steps = min_electronic_steps
         self.max_allowed_incline = max_allowed_incline
-        self.max_interp_range = max_fit_range
+        self.max_fit_range = max_fit_range
         self.output_data = output_data
 
     def check(self):
@@ -245,8 +250,8 @@ class ElectronicConvergenceMonitor(ErrorHandler):
             if len(residual_charge) + nelmdl > self.min_electronic_steps:
 
                 current_incline = np.polyfit(
-                    x=range(min([len(residual_charge), self.max_interp_range])),
-                    y=residual_charge[-self.max_interp_range:],
+                    x=range(min([len(residual_charge), self.max_fit_range])),
+                    y=residual_charge[-self.max_fit_range:],
                     deg=1
                 )[0]
 
@@ -259,9 +264,9 @@ class ElectronicConvergenceMonitor(ErrorHandler):
 
                     for i in range(self.min_electronic_steps, len(residual_charge)):
                         incline_per_step.append(
-                            np.polyfit(range(min([i, self.max_interp_range])),
+                            np.polyfit(range(min([i, self.max_fit_range])),
                                        residual_charge[
-                                       max([0, i - self.max_interp_range]):i], 1)[0]
+                                       max([0, i - self.max_fit_range]):i], 1)[0]
                         )
 
                     ax1 = plt.subplot(2, 1, 1)
@@ -403,7 +408,9 @@ class JobTerminator(ErrorHandler):
         "eddrmm": ["WARNING in EDDRMM: call to ZHEGV failed"],
         "edddav": ["Error EDDDAV: Call to ZHEGV failed"],
         "zheev": ["ERROR EDDIAG: Call to routine ZHEEV failed!"],
-        "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to DGEMV"]
+        "intel_mkl": ["Intel MKL ERROR: Parameter 6 was incorrect on entry to "
+                      "DGEMV"],
+        "edwav": ["EDWAV: internal error, the gradient is not orthogonal"]
     }
 
     def __init__(self, output_filename="vasp.out", natoms_large_cell=100,
@@ -419,7 +426,7 @@ class JobTerminator(ErrorHandler):
             natoms_large_cell (int): Number of atoms threshold to treat cell
                 as large. Affects the correction of certain errors. Defaults to
                 100.
-            errors_subset_to_catch(list): A subset of errors to catch. The
+            errors_subset_to_catch (list): A subset of errors to catch. The
                 default is None, which means all supported errors are detected.
                 Use this to only catch only a subset of supported errors.
                 E.g., ["eddrrm", "zheev"] will only catch the eddrmm and zheev

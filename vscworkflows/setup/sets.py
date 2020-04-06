@@ -106,7 +106,7 @@ class BulkOptimizeSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=_load_yaml_config("relaxSet")
+            structure=structure, config_dict=_load_yaml_config("optimizeSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
         self.kwargs = kwargs
@@ -182,7 +182,7 @@ class SlabOptimizeSet(DictSet):
 
     def __init__(self, structure, user_slab_settings=None, **kwargs):
         config_dict = _set_structure_incar_settings(
-            structure=structure, config_dict=_load_yaml_config("relaxSet")
+            structure=structure, config_dict=_load_yaml_config("optimizeSet")
         )
         super().__init__(structure=structure, config_dict=config_dict, **kwargs)
 
